@@ -4,6 +4,24 @@
 
 This repository is **Basalt**, a Next.js application. Use **pnpm** for installs and scripts (`packageManager` is set in `package.json`). Before changing framework code, read the in-tree Next.js guide at `node_modules/next/dist/docs/`—this stack can differ from older Next.js docs and training data.
 
+## PNPM Scripts
+
+| Script         | Purpose                                 |
+| -------------- | --------------------------------------- |
+| `dev`          | Next.js dev server                      |
+| `build`        | Production build                        |
+| `start`        | Run production server (after `build`)   |
+| `lint`         | ESLint on the repo                      |
+| `typecheck`    | TypeScript (`tsc --noEmit`)             |
+| `format`       | Prettier write                          |
+| `format:check` | Prettier check (CI-friendly)            |
+| `test`         | Vitest watch mode                       |
+| `test:run`     | Vitest single run (CI-friendly)         |
+| `db:generate`  | Drizzle: generate SQL migrations        |
+| `db:migrate`   | Drizzle: apply migrations               |
+| `db:push`      | Drizzle: push schema (dev shortcut)     |
+| `db:seed`      | Seed access levels + default Owner user |
+
 ## Tech stack
 
 - **Runtime / app:** Node.js, [Next.js](https://nextjs.org/) (App Router), React 19
@@ -28,24 +46,6 @@ This version has breaking changes: APIs, conventions, and file structure may dif
 Tests run with **Vitest** in a **jsdom** environment (`vitest.config.ts`). Use `pnpm test` for watch mode and `pnpm test:run` for a single CI-style run.
 
 **Naming:** test files must use the `*.spec.ts` or `*.spec.tsx` suffix (co-located under `src/` as needed). Do not use `*.test.ts` / `*.test.tsx`.
-
-## PNPM Scripts
-
-| Script         | Purpose                                 |
-| -------------- | --------------------------------------- |
-| `dev`          | Next.js dev server                      |
-| `build`        | Production build                        |
-| `start`        | Run production server (after `build`)   |
-| `lint`         | ESLint on the repo                      |
-| `typecheck`    | TypeScript (`tsc --noEmit`)             |
-| `format`       | Prettier write                          |
-| `format:check` | Prettier check (CI-friendly)            |
-| `test`         | Vitest watch mode                       |
-| `test:run`     | Vitest single run (CI-friendly)         |
-| `db:generate`  | Drizzle: generate SQL migrations        |
-| `db:migrate`   | Drizzle: apply migrations               |
-| `db:push`      | Drizzle: push schema (dev shortcut)     |
-| `db:seed`      | Seed access levels + default Owner user |
 
 ## Gotchas
 
