@@ -37,6 +37,14 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 
 Pinned versions live in `package.json`.
 
+## Local Postgres (readonly exploration)
+
+With the default Docker setup, agents can use this **read-only** URL (same value as `DATABASE_URL_READONLY` in [`.env.example`](.env.example)) to inspect **table shapes** and **current values** without write access:
+
+`postgresql://basalt_readonly:basalt_readonly@localhost:5432/basalt`
+
+The readonly role is **SELECT-only**—use it for exploration (e.g. `psql`, GUI clients). Use `DATABASE_URL` for migrations, seeding, and any data changes.
+
 ## Next.js
 
 This version has breaking changes: APIs, conventions, and file structure may differ from your training data. Heed deprecation notices in the local docs.
