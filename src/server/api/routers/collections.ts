@@ -10,12 +10,19 @@ import {
   parseCollectionFields,
   setsEqual,
 } from "@/lib/collection-fields";
+import { MAX_TABLE_SUFFIX_LENGTH } from "@/lib/collection-physical-table";
+import {
+  collectionDataTableExists,
+  createCollectionDataTable,
+  dropCollectionDataTable,
+  syncCollectionDataTableSchema,
+} from "@/server/collection-data-ddl";
 import { adminProcedure, router } from "@/server/api/trpc";
 
 const collectionSlugSchema = z
   .string()
   .min(1)
-  .max(128)
+  .max(MAX_TABLE_SUFFIX_LENGTH)
   .regex(/^[a-z][a-z0-9_]*$/, "Slug: lowercase letters, numbers, underscores; start with a letter.");
 
 const createInput = z.object({
@@ -70,19 +77,44 @@ export const collectionsRouter = router({
       throw new TRPCError({ code: "CONFLICT", message: "A collection with this slug already exists." });
     }
 
-    const [row] = await db
-      .insert(collections)
-      .values({
-        slug: input.slug,
-        name: input.name,
-        fields,
-      })
-      .returning();
-
-    if (!row) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create collection." });
+    const [suffixTaken] = await db
+      .select({ id: collections.id })
+      .from(collections)
+      .where(eq(collections.tableSuffix, input.slug))
+      .limit(1);
+    if (suffixTaken) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: "Another collection already uses this table name (table suffix).",
+      });
     }
-    return row;
+
+    try {
+      return await db.transaction(async (tx) => {
+        const [row] = await tx
+          .insert(collections)
+          .values({
+            slug: input.slug,
+            tableSuffix: input.slug,
+            name: input.name,
+            fields,
+          })
+          .returning();
+
+        if (!row) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create collection." });
+        }
+
+        await createCollectionDataTable(tx, row.tableSuffix, fields);
+        return row;
+      });
+    } catch (e) {
+      if (e instanceof TRPCError) {
+        throw e;
+      }
+      const message = e instanceof Error ? e.message : "Failed to create collection data table.";
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+    }
   }),
 
   update: adminProcedure.input(updateInput).mutation(async ({ input }) => {
@@ -123,33 +155,61 @@ export const collectionsRouter = router({
       };
     }
 
-    const [row] = await db
-      .update(collections)
-      .set({
-        slug: input.slug,
-        name: input.name,
-        fields: nextFields,
-      })
-      .where(eq(collections.id, input.id))
-      .returning();
+    try {
+      const row = await db.transaction(async (tx) => {
+        const exists = await collectionDataTableExists(tx, existing.tableSuffix);
+        if (!exists) {
+          await createCollectionDataTable(tx, existing.tableSuffix, nextFields);
+        } else {
+          await syncCollectionDataTableSchema(tx, existing.tableSuffix, previousFields, nextFields);
+        }
 
-    if (!row) {
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update collection." });
+        const [updated] = await tx
+          .update(collections)
+          .set({
+            slug: input.slug,
+            name: input.name,
+            fields: nextFields,
+          })
+          .where(eq(collections.id, input.id))
+          .returning();
+
+        if (!updated) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update collection." });
+        }
+        return updated;
+      });
+
+      return { status: "ok" as const, collection: row };
+    } catch (e) {
+      if (e instanceof TRPCError) {
+        throw e;
+      }
+      const message = e instanceof Error ? e.message : "Failed to sync collection data table.";
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
     }
-
-    return { status: "ok" as const, collection: row };
   }),
 
   delete: adminProcedure.input(z.object({ id: z.string().uuid() })).mutation(async ({ input }) => {
     const [existing] = await db
-      .select({ id: collections.id })
+      .select({ id: collections.id, tableSuffix: collections.tableSuffix })
       .from(collections)
       .where(eq(collections.id, input.id))
       .limit(1);
     if (!existing) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Collection not found." });
     }
-    await db.delete(collections).where(eq(collections.id, input.id));
+
+    try {
+      await db.transaction(async (tx) => {
+        await dropCollectionDataTable(tx, existing.tableSuffix);
+        await tx.delete(collections).where(eq(collections.id, input.id));
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Failed to delete collection data table.";
+      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+    }
+
     return { ok: true as const };
   }),
 });

@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+/** Physical `col_*` row uses `id`; audit columns reserved for a later milestone. */
+export const RESERVED_COLLECTION_FIELD_NAMES = new Set(["id", "created_at", "updated_at", "created_by", "updated_by"]);
+
 export const collectionFieldTypeSchema = z.enum(["text", "number", "boolean", "date", "json"]);
 export type CollectionFieldType = z.infer<typeof collectionFieldTypeSchema>;
 
@@ -123,7 +126,7 @@ export const collectionFieldDefinitionSchema = z
     })();
     if (!ok) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: `defaultValue must match type ${type}.`,
         path: ["defaultValue"],
       });
@@ -138,12 +141,19 @@ export const collectionFieldsArraySchema = z.array(collectionFieldDefinitionSche
     const name = fields[i]!.name;
     if (seen.has(name)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: `Duplicate field name "${name}".`,
         path: [i, "name"],
       });
     }
     seen.add(name);
+    if (RESERVED_COLLECTION_FIELD_NAMES.has(name)) {
+      ctx.addIssue({
+        code: "custom",
+        message: `Field name "${name}" is reserved for system columns.`,
+        path: [i, "name"],
+      });
+    }
   }
 });
 

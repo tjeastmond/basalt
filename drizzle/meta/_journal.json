@@ -29,6 +29,13 @@
       "when": 1774984113134,
       "tag": "0003_collections_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774988668404,
+      "tag": "0004_collections_table_suffix",
+      "breakpoints": true
     }
   ]
 }

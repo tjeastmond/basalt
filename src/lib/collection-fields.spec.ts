@@ -74,6 +74,14 @@ describe("collectionFieldsArraySchema", () => {
     ]);
     expect(result.success).toBe(false);
   });
+
+  it("rejects reserved system column names", () => {
+    const id = "eeeeeeee-bbbb-4eee-e555-eeeeeeeeeeee";
+    const result = collectionFieldsArraySchema.safeParse([
+      { id, name: "id", type: "text", required: false, unique: false },
+    ]);
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("setsEqual", () => {

@@ -75,7 +75,10 @@ export const account = pgTable(
 
 export const collections = pgTable("collections", {
   id: uuid("id").primaryKey().defaultRandom(),
+  /** User-editable URL key; may diverge from `tableSuffix` after renames. */
   slug: text("slug").notNull().unique(),
+  /** Immutable Postgres table suffix: physical data table is `col_<tableSuffix>`. Set once at create. */
+  tableSuffix: text("table_suffix").notNull().unique(),
   name: text("name").notNull(),
   fields: jsonb("fields").$type<CollectionFieldDefinition[]>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
