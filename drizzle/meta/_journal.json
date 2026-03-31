@@ -8,6 +8,20 @@
       "when": 1774977492336,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774977492337,
+      "tag": "0001_plural_auth_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774977492338,
+      "tag": "0002_plural_auth_constraint_names",
+      "breakpoints": true
     }
   ]
 }

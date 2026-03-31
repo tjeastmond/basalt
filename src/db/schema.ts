@@ -9,7 +9,7 @@ export const accessLevels = pgTable("access_levels", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const user = pgTable("user", {
+export const user = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -27,7 +27,7 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable(
-  "session",
+  "sessions",
   {
     id: text("id").primaryKey(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -43,11 +43,11 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)],
+  (table) => [index("sessions_userId_idx").on(table.userId)],
 );
 
 export const account = pgTable(
-  "account",
+  "accounts",
   {
     id: text("id").primaryKey(),
     accountId: text("account_id").notNull(),
@@ -68,7 +68,7 @@ export const account = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [index("account_userId_idx").on(table.userId)],
+  (table) => [index("accounts_userId_idx").on(table.userId)],
 );
 
 export const verification = pgTable(
