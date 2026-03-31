@@ -6,7 +6,7 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Working on next
 
-Records CRUD UI and server logic against **physical per-collection tables** (DDL: create / alter / drop table when collection schema changes).
+**Audit trail** columns on physical data tables (`created_at`, etc.) and/or **API access** (REST + keys); **field validation rules** (min/max length, number ranges) and richer record UX (sort by `created_at`, optional slide-in panels).
 
 ## Foundation and Tooling
 
@@ -134,37 +134,39 @@ Treat **`collections.fields` as authoritative** for app behavior. After DDL, opt
 
 ## Records and Admin UI
 
-### Access layer (to build)
+### Access layer (implemented)
 
-Add a dedicated server module (e.g. under `src/server/` or `src/lib/`) that:
+Server module [`src/server/collection-records.ts`](src/server/collection-records.ts) (plus [`src/lib/ilike-escape.ts`](src/lib/ilike-escape.ts) for search patterns):
 
-1. Loads the collection row by `id`, parses `fields`, and computes **physical table name** as **`col_` + `table_suffix`** (immutable storage key, not the live `slug`).
-2. Builds **parameterized** `SELECT` / `INSERT` / `UPDATE` / `DELETE` using a allowlisted identifier map (table + column names only from metadata, never from raw client strings).
-3. Maps row `id` and dynamic columns to/from JSON for the API and UI.
+1. Loads the collection row by `id`, parses `fields`, and resolves **physical table name** as **`col_` + `table_suffix`** (immutable, not the live `slug`).
+2. Runs **parameterized** `SELECT` / `INSERT` / `UPDATE` / `DELETE` via `pg` with allowlisted table/column identifiers from metadata only.
+3. Maps row `id` and dynamic columns to/from JSON for tRPC and the admin UI.
 
-Expose this through a new **tRPC router** (e.g. `records`) with `adminProcedure` (or stricter) for MVP. The “tRPC for internal app usage” item under API Access means stabilizing procedure shapes and sharing types with the admin UI; the records router is the main consumer once physical tables exist.
+**tRPC:** [`records` router](src/server/api/routers/records.ts) (`list`, `byId`, `create`, `update`, `delete`) on **`adminProcedure`**, merged in [`src/server/api/root.ts`](src/server/api/root.ts).
 
-**Pagination:** `LIMIT` / `OFFSET` or keyset on `(created_at, id)` when `created_at` exists on the data table; if not yet migrated, default sort **`id` desc** until Audit Trail adds timestamps.
+**Admin routes:** `/collections/[collectionId]/records`, `…/records/new`, `…/records/[recordId]` under [`src/app/collections/[collectionId]/records/`](src/app/collections/[collectionId]/records/). List + links from [`collections-list.tsx`](src/app/collections/collections-list.tsx) and **View records** on the collection editor.
 
-**Search:** For each field with `type === "text"`, OR together `column ILIKE '%' || $q || '%'` with a single bound parameter for the search string (escape `%` / `_` in user input or use a documented simple contains behavior).
+**Pagination:** `LIMIT` / `OFFSET` (default **25** per page). **Sort:** `ORDER BY id DESC` until Audit Trail adds `created_at` on data tables.
 
-- [ ] List / insert / update / delete rows with **parameterized SQL** against the collection’s physical table (resolve table and columns from `collections` metadata by `collection_id`).
-- [ ] CRUD UI for any collection
+**Search:** Single bound pattern across all **`text`** fields: `ILIKE` with `ESCAPE '\'`; user input escaped via `escapeIlikePattern`.
+
+- [x] List / insert / update / delete rows with **parameterized SQL** against the collection’s physical table (resolve table and columns from `collections` metadata by `collection_id`).
+- [x] CRUD UI for any collection
 - [ ] Forms for editing any collections or tables should slide into view or load on a whole new page
 - [ ] Add a settings section with the option to have collections slide in/out from the right, or display a whole page
-- [ ] Table view with pagination (default 25 per page)
-- [ ] Search with simple contains across **text columns** (e.g. `ILIKE` on mapped `text` fields)
+- [x] Table view with pagination (default 25 per page)
+- [x] Search with simple contains across **text columns** (e.g. `ILIKE` on mapped `text` fields)
 - [ ] Default sort by `created_at` desc with user override
-- [ ] Record detail view with inline editing
-- [ ] Validation rules
+- [ ] Record detail view with inline editing (dedicated **edit page** with form exists; not yet inline in the table)
+- [ ] Validation rules (metadata-driven min/max, etc.)
 - [ ] Text min and max length
 - [ ] Number min and max
-- [ ] JSON validity checks
-- [ ] Display validation errors in UI
+- [x] JSON validity checks (parse/validate on write in app + forms)
+- [x] Display validation errors in UI (form + tRPC error messages)
 
 ## API Access and Permissions
 
-- [ ] tRPC for internal app usage
+- [x] tRPC for internal app usage (admin: `me`, `users`, `collections`, `records`; shapes evolve with the app)
 - [ ] REST-ish JSON endpoints for external usage
 - [ ] API key auth via `Authorization: Bearer <key>`
 - [ ] Error shape `{ "error": { "code": string, "message": string } }`
@@ -211,7 +213,7 @@ Expose this through a new **tRPC router** (e.g. `records`) with `adminProcedure`
 - [ ] Smoke test: create/edit/delete collection
 - [ ] Smoke test: create/edit/delete **record rows in a collection’s physical table**
 - [ ] Smoke test: API key access for read and write
-- [ ] Build passes with `pnpm build`
+- [x] Build passes with `pnpm build`
 
 ## Non-Goals (MVP)
 

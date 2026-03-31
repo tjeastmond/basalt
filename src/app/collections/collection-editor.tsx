@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import type { CollectionFieldDefinition, CollectionFieldType } from "@/lib/collection-fields";
 import { trpc } from "@/trpc/react";
@@ -245,6 +246,15 @@ export function CollectionEditor(props: CollectionEditorProps) {
   return (
     <div className="flex flex-col gap-6">
       {formError ? <p className="text-sm text-destructive">{formError}</p> : null}
+
+      {props.mode === "edit" ? (
+        <p className="text-sm">
+          <Link href={`/collections/${props.collectionId}/records`} className="text-primary underline-offset-4 hover:underline">
+            View records
+          </Link>{" "}
+          <span className="text-muted-foreground">for this collection.</span>
+        </p>
+      ) : null}
 
       <div className="grid max-w-xl gap-4">
         <label className="flex flex-col gap-1 text-sm">

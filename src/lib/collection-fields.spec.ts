@@ -5,10 +5,27 @@ import {
   computeSchemaChangeFlags,
   dedupeMachineNames,
   finalizeFieldDefinitions,
+  humanizeFieldMachineName,
   isSafeTypeTransition,
   normalizeFieldMachineName,
   setsEqual,
 } from "@/lib/collection-fields";
+
+describe("humanizeFieldMachineName", () => {
+  it("turns snake_case into title words", () => {
+    expect(humanizeFieldMachineName("character_name")).toBe("Character Name");
+    expect(humanizeFieldMachineName("post_title")).toBe("Post Title");
+  });
+
+  it("collapses repeated underscores", () => {
+    expect(humanizeFieldMachineName("a__b")).toBe("A B");
+  });
+
+  it("sentence-cases a single segment", () => {
+    expect(humanizeFieldMachineName("email")).toBe("Email");
+    expect(humanizeFieldMachineName("SKU")).toBe("Sku");
+  });
+});
 
 describe("isSafeTypeTransition", () => {
   it("allows same type", () => {

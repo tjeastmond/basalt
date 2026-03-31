@@ -60,6 +60,18 @@ export function normalizeFieldMachineName(raw: string): string {
 }
 
 /**
+ * Display label for a stored machine name: `character_name` → "Character Name".
+ * Splits on underscores, title-cases each segment; single-segment names become sentence case.
+ */
+export function humanizeFieldMachineName(name: string): string {
+  const parts = name.split(/_+/).filter((p) => p.length > 0);
+  if (parts.length === 0) {
+    return name;
+  }
+  return parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(" ");
+}
+
+/**
  * Ensure unique machine names in field order (second and later collisions get `_2`, `_3`, …).
  */
 export function dedupeMachineNames(bases: string[]): string[] {
