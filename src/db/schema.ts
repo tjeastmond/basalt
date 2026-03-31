@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
+import type { CollectionApiPermissions } from "@/lib/collection-api-permissions";
 import type { CollectionFieldDefinition } from "@/lib/collection-fields";
 
 export const accessLevels = pgTable("access_levels", {
@@ -81,12 +82,45 @@ export const collections = pgTable("collections", {
   tableSuffix: text("table_suffix").notNull().unique(),
   name: text("name").notNull(),
   fields: jsonb("fields").$type<CollectionFieldDefinition[]>().notNull(),
+  apiPermissions: jsonb("api_permissions")
+    .$type<CollectionApiPermissions>()
+    .notNull()
+    .$defaultFn(() => ({
+      read: true,
+      create: true,
+      update: true,
+      delete: true,
+    })),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
+
+export const apiKeys = pgTable(
+  "api_keys",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** First 16 characters of the issued secret; used for lookup before constant-time verify. */
+    keyPrefix: text("key_prefix").notNull().unique(),
+    keySalt: text("key_salt").notNull(),
+    keyHash: text("key_hash").notNull(),
+    label: text("label").notNull(),
+    accessLevelId: uuid("access_level_id")
+      .notNull()
+      .references(() => accessLevels.id, { onDelete: "restrict" }),
+    /** When null, all collections are allowed (subject to per-collection API flags). When set, only listed UUIDs. */
+    allowedCollectionIds: jsonb("allowed_collection_ids").$type<string[] | null>(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [index("api_keys_access_level_id_idx").on(table.accessLevelId)],
+);
 
 export const verification = pgTable(
   "verification",

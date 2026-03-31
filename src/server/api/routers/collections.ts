@@ -11,6 +11,7 @@ import {
   setsEqual,
 } from "@/lib/collection-fields";
 import { MAX_TABLE_SUFFIX_LENGTH } from "@/lib/collection-physical-table";
+import { collectionCreateInputSchema, createCollectionAsAdmin } from "@/server/collection-admin-commands";
 import {
   collectionDataTableExists,
   createCollectionDataTable,
@@ -24,12 +25,6 @@ const collectionSlugSchema = z
   .min(1)
   .max(MAX_TABLE_SUFFIX_LENGTH)
   .regex(/^[a-z][a-z0-9_]*$/, "Slug: lowercase letters, numbers, underscores; start with a letter.");
-
-const createInput = z.object({
-  slug: collectionSlugSchema,
-  name: z.string().min(1).max(200),
-  fields: collectionFieldsLooseArraySchema,
-});
 
 const updateInput = z.object({
   id: z.string().uuid(),
@@ -66,55 +61,8 @@ export const collectionsRouter = router({
     return row;
   }),
 
-  create: adminProcedure.input(createInput).mutation(async ({ input }) => {
-    const fields = finalizeFieldDefinitions(input.fields);
-    const [existing] = await db
-      .select({ id: collections.id })
-      .from(collections)
-      .where(eq(collections.slug, input.slug))
-      .limit(1);
-    if (existing) {
-      throw new TRPCError({ code: "CONFLICT", message: "A collection with this slug already exists." });
-    }
-
-    const [suffixTaken] = await db
-      .select({ id: collections.id })
-      .from(collections)
-      .where(eq(collections.tableSuffix, input.slug))
-      .limit(1);
-    if (suffixTaken) {
-      throw new TRPCError({
-        code: "CONFLICT",
-        message: "Another collection already uses this table name (table suffix).",
-      });
-    }
-
-    try {
-      return await db.transaction(async (tx) => {
-        const [row] = await tx
-          .insert(collections)
-          .values({
-            slug: input.slug,
-            tableSuffix: input.slug,
-            name: input.name,
-            fields,
-          })
-          .returning();
-
-        if (!row) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create collection." });
-        }
-
-        await createCollectionDataTable(tx, row.tableSuffix, fields);
-        return row;
-      });
-    } catch (e) {
-      if (e instanceof TRPCError) {
-        throw e;
-      }
-      const message = e instanceof Error ? e.message : "Failed to create collection data table.";
-      throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
-    }
+  create: adminProcedure.input(collectionCreateInputSchema).mutation(async ({ input }) => {
+    return createCollectionAsAdmin(input);
   }),
 
   update: adminProcedure.input(updateInput).mutation(async ({ input }) => {

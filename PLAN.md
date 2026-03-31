@@ -169,14 +169,14 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 ## API Access and Permissions
 
-- [x] tRPC for internal app usage (admin: `me`, `users`, `collections`, `records`; shapes evolve with the app)
-- [ ] REST-ish JSON endpoints for external usage
-- [ ] API key auth via `Authorization: Bearer <key>`
-- [ ] Error shape `{ "error": { "code": string, "message": string } }`
-- [ ] API keys scoped by role and optional collection allowlist
-- [ ] Per-collection API permissions toggles for read/create/update/delete
-- [ ] Per-endpoint role requirements (admin-only or owner-only)
-- [ ] Rate limiting per API key (configurable constant)
+- [x] tRPC for internal app usage (admin: `me`, `users`, `apiKeys`, `collections`, `records`; shapes evolve with the app)
+- [x] REST-ish JSON endpoints for external usage (`/api/v1/collections`, records under `/api/v1/collections/:slug/records`, etc.)
+- [x] API key auth via `Authorization: Bearer <key>` (plaintext shown once on create via `apiKeys.create`)
+- [x] Error shape `{ "error": { "code": string, "message": string } }`
+- [x] API keys scoped by role and optional collection allowlist
+- [x] Per-collection API permissions toggles for read/create/update/delete (`collections.api_permissions` + `PATCH .../api-permissions`)
+- [x] Per-endpoint role requirements (admin-only or owner-only)
+- [x] Rate limiting per API key (configurable constant)
 
 ## Import and Export
 
@@ -199,7 +199,6 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 ## UI and UX
 
-- [ ] Mobile-friendly responsive layout
 - [x] Dark mode toggle in header ([`ThemeToggle`](src/components/theme-toggle.tsx) in [`AppHeader`](src/components/app-header.tsx))
 
 ## Ops, Environment, and Deployment
@@ -215,8 +214,12 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 - [ ] Smoke test: auth flow (login, logout)
 - [ ] Smoke test: create/edit/delete collection
 - [ ] Smoke test: create/edit/delete **record rows in a collection’s physical table**
-- [ ] Smoke test: API key access for read and write
+- [ ] Smoke test: API key access for read and write (manual or Playwright against `/api/v1`)
 - [x] Build passes with `pnpm build`
+
+## Later (After first initial MVP is built)
+
+- [ ] Mobile-friendly responsive layout
 
 ## Non-Goals (MVP)
 

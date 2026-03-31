@@ -1,6 +1,8 @@
 import { eq } from "drizzle-orm";
 
 import { collections, db, getPool } from "@/db";
+import type { CollectionApiPermissions } from "@/lib/collection-api-permissions";
+import { normalizeCollectionApiPermissions } from "@/lib/collection-api-permissions";
 import type { CollectionFieldDefinition } from "@/lib/collection-fields";
 import { parseCollectionFields, validateValueAgainstFieldConstraints } from "@/lib/collection-fields";
 import { escapeIlikePattern } from "@/lib/ilike-escape";
@@ -19,6 +21,11 @@ export type CollectionRecordsTarget = {
   tableSuffix: string;
   tableSql: string;
   fields: CollectionFieldDefinition[];
+};
+
+export type CollectionRecordsTargetWithApi = CollectionRecordsTarget & {
+  slug: string;
+  apiPermissions: CollectionApiPermissions;
 };
 
 export async function loadCollectionRecordsTarget(collectionId: string): Promise<CollectionRecordsTarget | null> {
@@ -45,6 +52,37 @@ export async function loadCollectionRecordsTarget(collectionId: string): Promise
     tableSuffix: row.tableSuffix,
     tableSql,
     fields,
+  };
+}
+
+export async function loadCollectionTargetWithApiBySlug(slug: string): Promise<CollectionRecordsTargetWithApi | null> {
+  const [row] = await db
+    .select({
+      id: collections.id,
+      slug: collections.slug,
+      tableSuffix: collections.tableSuffix,
+      fields: collections.fields,
+      apiPermissions: collections.apiPermissions,
+    })
+    .from(collections)
+    .where(eq(collections.slug, slug))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  await ensureCreatedAtColumn(row.tableSuffix);
+
+  const fields = parseCollectionFields(row.fields);
+  const tableSql = collectionDataTableName(row.tableSuffix);
+  return {
+    collectionId: row.id,
+    tableSuffix: row.tableSuffix,
+    tableSql,
+    fields,
+    slug: row.slug,
+    apiPermissions: normalizeCollectionApiPermissions(row.apiPermissions),
   };
 }
 
