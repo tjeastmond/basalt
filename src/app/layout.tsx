@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppHeader } from "@/components/app-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TrpcProvider } from "@/trpc/react";
 
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({
           <TrpcProvider>
             <AppHeader />
             {children}
+            <Toaster richColors closeButton />
           </TrpcProvider>
         </ThemeProvider>
       </body>

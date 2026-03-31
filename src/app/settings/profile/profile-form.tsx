@@ -1,11 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/trpc/react";
+import { toast } from "sonner";
 
 type MeData = {
   id: string;
@@ -17,14 +17,14 @@ type MeData = {
 };
 
 function ProfileFormLoaded(props: { data: MeData }) {
-  const router = useRouter();
   const utils = trpc.useUtils();
   const [name, setName] = useState(props.data.name);
   const [image, setImage] = useState(props.data.image ?? "");
+
   const update = trpc.me.updateProfile.useMutation({
     onSuccess: async () => {
+      toast.success("Profile saved.");
       await utils.me.get.invalidate();
-      router.refresh();
     },
   });
 
@@ -65,7 +65,6 @@ function ProfileFormLoaded(props: { data: MeData }) {
         Role: <span className="font-medium text-foreground">{props.data.accessSlug}</span>
       </div>
       {update.error ? <p className="text-destructive text-sm">{update.error.message}</p> : null}
-      {update.isSuccess ? <p className="text-sm text-muted-foreground">Saved.</p> : null}
       <Button type="submit" disabled={update.isPending}>
         {update.isPending ? "Saving…" : "Save profile"}
       </Button>
@@ -171,7 +170,7 @@ export function ProfileForm() {
 
   return (
     <div className="flex flex-col gap-8">
-      <ProfileFormLoaded key={`${data.name}:${data.image ?? ""}`} data={data} />
+      <ProfileFormLoaded key={data.id} data={data} />
       <ChangePasswordForm />
     </div>
   );
