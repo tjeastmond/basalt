@@ -18,14 +18,14 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Auth, Roles, and Onboarding
 
-- [ ] Integrate Clerk email/password auth only
-- [ ] Define roles: Owner, Admin, User
-- [ ] Owner is superuser-equivalent
+- [x] Local email/password auth (Better Auth + Drizzle + Postgres; no Clerk)
+- [x] Access levels: Owner, Admin, User (`access_levels` table + seed; users link via `access_level_id`)
+- [ ] Owner is superuser-equivalent (enforce in app/tRPC)
 - [ ] Only Owner can assign Owner role
 - [ ] Owner role can be granted or revoked by another Owner
 - [ ] Admin can invite/create users and assign non-Owner roles
 - [ ] User can update own profile
-- [ ] On first successful login, create Owner
+- [x] Default Owner seeded (`pnpm db:seed`: `basalt@basalt.local` / `basalt`; change for production)
 - [ ] Onboarding prompt to create first collection
 
 ## Collections and Schema
@@ -90,8 +90,8 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Ops, Environment, and Deployment
 
-- [ ] Local Docker Postgres setup
-- [ ] Drizzle config and migrations pipeline
+- [x] Local Docker Postgres setup
+- [x] Drizzle config and migrations pipeline (`drizzle.config.ts`, `pnpm db:generate` / `db:migrate` / `db:push`, `pnpm db:seed`)
 - [ ] Migrations only for base tables: users, superusers, posts, logs, collections metadata
 - [ ] Environment config for local and production
 - [ ] Vercel deployment uses App Router defaults

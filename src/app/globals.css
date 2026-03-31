@@ -127,4 +127,18 @@
   html {
     @apply font-sans;
   }
+  /* Clickable controls should show pointer (unstyled <button> defaults vary by browser / reset) */
+  a[href],
+  button:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="reset"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+  button:disabled,
+  input[type="submit"]:disabled,
+  input[type="button"]:disabled,
+  input[type="reset"]:disabled {
+    @apply cursor-not-allowed;
+  }
 }

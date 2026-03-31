@@ -6,7 +6,7 @@ The inspiration for this project is: https://pocketbase.io. We will include a lo
 
 ## Tech Stack and Tools
 
-- Clerk/next.js
+- Better Auth / Next.js (local email/password; OAuth later)
 - Docker (local Postgres)
 - Drizzle
 - Eslint
@@ -31,8 +31,8 @@ The inspiration for this project is: https://pocketbase.io. We will include a lo
 
 ### Auth and Users
 
-- Clerk-backed auth (email/password for MVP)
-- Roles: Owner, Admin, User
+- Better Auth with Postgres (email/password for MVP); default Owner from `pnpm db:seed`
+- Roles as data: `access_levels` (Owner, Admin, User) with users referencing `access_level_id`
 - Owner is equivalent to superuser
 - Only Owner can assign the Owner role to others
 - Owner role can be granted or revoked by another Owner
@@ -83,11 +83,11 @@ The inspiration for this project is: https://pocketbase.io. We will include a lo
 
 ### Ops and Quality
 
-- Env config for local and production (Clerk, DB, API keys)
+- Env config for local and production (Better Auth secret/URL, DB, API keys)
 - Minimal audit trail: created_at, updated_at, created_by, updated_by
 - Tests: smoke tests for auth, collection CRUD, record CRUD
 - Audit trail is system-owned, immutable, and shown read-only in record detail
-- Onboarding: create Owner on the first successful login; prompt to create first collection
+- Onboarding: seed default Owner (`db:seed`); prompt to create first collection (later)
 
 ## Non-Goals for MVP
 
