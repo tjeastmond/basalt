@@ -133,7 +133,7 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
 
       {data ? (
         <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[32rem] text-left text-sm">
+          <table className="w-full min-w-lg text-left text-sm">
             <thead className="border-b border-border bg-muted/40">
               <tr>
                 <th className="px-3 py-2 font-medium">Name</th>
@@ -276,7 +276,7 @@ function LevelSelect(props: {
 
   return (
     <select
-      className="border-input max-w-[10rem] rounded-md border px-2 py-1 text-sm"
+      className="border-input max-w-40 rounded-md border px-2 py-1 text-sm"
       value={props.value}
       disabled={props.disabled}
       onChange={(ev) => props.onChange(ev.target.value as AccessSlug)}

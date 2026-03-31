@@ -49,7 +49,7 @@ function HeaderAuthNavInner({
   }
 
   return (
-    <div className="inline-flex min-w-[5.25rem] flex-wrap items-center justify-end gap-x-3 gap-y-1">
+    <div className="inline-flex min-w-21 flex-wrap items-center justify-end gap-x-3 gap-y-1">
       {loggedIn ? (
         <>
           <Link href="/settings/profile" className={linkClass}>
