@@ -148,7 +148,9 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 **Pagination:** `LIMIT` / `OFFSET` (default **25** per page). **Sort:** `ORDER BY id DESC` until Audit Trail adds `created_at` on data tables.
 
-**Search:** Single bound pattern across all **`text`** fields: `ILIKE` with `ESCAPE '\'`; user input escaped via `escapeIlikePattern`.
+**Search:** Single bound pattern across all **`text`** fields: `ILIKE` with `ESCAPE '\'`; user input escaped via `escapeIlikePattern` ([`src/lib/ilike-escape.ts`](src/lib/ilike-escape.ts); covered in [`src/lib/ilike-escape.spec.ts`](src/lib/ilike-escape.spec.ts)).
+
+**Records UX:** Create saves then redirects to the **records listing** (not the new row’s edit URL). Record create/edit uses a **`<form>`** so **Enter** submits from single-line inputs. **Machine field names** (`snake_case`) are shown human-readably in the table and record form via **`humanizeFieldMachineName`** in [`src/lib/collection-fields.ts`](src/lib/collection-fields.ts). **`buttonVariants`** for `Link` styling on server pages lives in [`src/components/ui/button-variants.ts`](src/components/ui/button-variants.ts) (no `"use client"` on that module).
 
 - [x] List / insert / update / delete rows with **parameterized SQL** against the collection’s physical table (resolve table and columns from `collections` metadata by `collection_id`).
 - [x] CRUD UI for any collection
@@ -163,6 +165,7 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 - [ ] Number min and max
 - [x] JSON validity checks (parse/validate on write in app + forms)
 - [x] Display validation errors in UI (form + tRPC error messages)
+- [x] Human-friendly labels for snake_case field names in records list + record form (machine `name` unchanged in API/DB)
 
 ## API Access and Permissions
 
@@ -197,7 +200,7 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 ## UI and UX
 
 - [ ] Mobile-friendly responsive layout
-- [ ] Dark mode toggle in header or settings
+- [x] Dark mode toggle in header ([`ThemeToggle`](src/components/theme-toggle.tsx) in [`AppHeader`](src/components/app-header.tsx))
 
 ## Ops, Environment, and Deployment
 

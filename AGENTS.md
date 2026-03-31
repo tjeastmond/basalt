@@ -37,6 +37,14 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 
 Pinned versions live in `package.json`.
 
+## Collection physical tables (Postgres)
+
+- **Two layers:** Collection **metadata** lives in the Drizzle table `collections` (`slug`, immutable `tableSuffix`, `name`, `fields` JSON). **Row data** lives in a separate Postgres table per collection named `col_<tableSuffix>` (prefix and validation in [`src/lib/collection-physical-table.ts`](src/lib/collection-physical-table.ts)).
+- **No per-collection Drizzle migrations:** The app issues raw `CREATE TABLE` / `ALTER TABLE` via [`src/server/collection-data-ddl.ts`](src/server/collection-data-ddl.ts). Drizzle migrations only evolve the shared `collections` (and auth) schema.
+- **Create:** [`collections.create`](src/server/api/routers/collections.ts) runs in a DB transaction: insert the `collections` row (`tableSuffix` starts equal to `slug`), then `createCollectionDataTable` builds columns from finalized field defs (`id uuid` primary key plus mapped types: text, double precision, boolean, timestamptz, jsonb; optional `UNIQUE` constraints).
+- **Update:** After confirmation flags for destructive changes, `syncCollectionDataTableSchema` alters the physical table to match new `fields` (add/drop/rename columns, type changes with `USING` where supported). If the physical table is missing, `createCollectionDataTable` is used. **`tableSuffix` is never changed** after create—only `slug` may be renamed for URLs.
+- **Delete:** `dropCollectionDataTable` then delete the `collections` row (transaction).
+
 ## Local Postgres (readonly exploration)
 
 With the default Docker setup, agents can use this **read-only** URL (same value as `DATABASE_URL_READONLY` in [`.env.example`](.env.example)) to inspect **table shapes** and **current values** without write access:
