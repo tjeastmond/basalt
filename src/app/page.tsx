@@ -1,6 +1,15 @@
 import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+import { getMemberFromHeaders } from "@/lib/member";
+
+export default async function Home() {
+  const member = await getMemberFromHeaders(await headers());
+  if (member && !member.onboardingCompletedAt) {
+    redirect("/onboarding");
+  }
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Basalt</h1>

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppHeader } from "@/components/app-header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TrpcProvider } from "@/trpc/react";
 
 import "./globals.css";
 
@@ -34,8 +35,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AppHeader />
-          {children}
+          <TrpcProvider>
+            <AppHeader />
+            {children}
+          </TrpcProvider>
         </ThemeProvider>
       </body>
     </html>

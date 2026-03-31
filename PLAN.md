@@ -20,13 +20,13 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 - [x] Local email/password auth (Better Auth + Drizzle + Postgres; no Clerk)
 - [x] Access levels: Owner, Admin, User (`access_levels` table + seed; users link via `access_level_id`)
-- [ ] Owner is superuser-equivalent (enforce in app/tRPC)
-- [ ] Only Owner can assign Owner role
-- [ ] Owner role can be granted or revoked by another Owner
-- [ ] Admin can invite/create users and assign non-Owner roles
-- [ ] User can update own profile
+- [x] Owner is superuser-equivalent (enforce in app/tRPC)
+- [x] Only Owner can assign Owner role
+- [x] Owner role can be granted or revoked by another Owner
+- [x] Admin can invite/create users and assign non-Owner roles
+- [x] User can update own profile
 - [x] Default Owner seeded (`pnpm db:seed`: `basalt@basalt.local` / `basalt`; change for production)
-- [ ] Onboarding prompt to create first collection
+- [x] Onboarding prompt to create first collection
 
 ## Collections and Schema
 

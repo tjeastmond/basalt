@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { HeaderAuthNav } from "@/components/header-auth-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { getServerSession } from "@/lib/session";
+import { getMemberFromHeaders } from "@/lib/member";
 
 export async function AppHeader() {
-  const session = await getServerSession();
-  const initialSignedIn = Boolean(session?.user);
+  const member = await getMemberFromHeaders(await headers());
+  const initialSignedIn = Boolean(member);
+  const initialAccessSlug = member?.accessSlug ?? null;
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-border px-4">
@@ -14,7 +16,7 @@ export async function AppHeader() {
         Basalt
       </Link>
       <div className="flex items-center gap-3">
-        <HeaderAuthNav initialSignedIn={initialSignedIn} />
+        <HeaderAuthNav initialSignedIn={initialSignedIn} initialAccessSlug={initialAccessSlug} />
         <ThemeToggle />
       </div>
     </header>
