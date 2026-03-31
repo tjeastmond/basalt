@@ -232,11 +232,13 @@ export function CollectionEditor(props: CollectionEditorProps) {
         return;
       }
       await utils.collections.list.invalidate();
+      router.push("/collections");
       router.refresh();
       return;
     }
 
     await utils.collections.list.invalidate();
+    router.push("/collections");
     router.refresh();
   }
 
