@@ -12,12 +12,13 @@ const root = path.resolve(__dirname, "..");
 config({ path: path.join(root, ".env.local") });
 config({ path: path.join(root, ".env") });
 
-const OWNER_EMAIL = "basalt@basalt.local";
+const OWNER_EMAIL = "tj@test.com";
 const OWNER_PASSWORD = "basalt";
 const OWNER_NAME = "Basalt";
 
 async function main() {
-  const { db, accessLevels, user, account } = await import("../src/db/index");
+  const { db, getReadonlyDb, accessLevels, user, account } = await import("../src/db/index");
+  const readDb = getReadonlyDb();
 
   await db
     .insert(accessLevels)
@@ -28,13 +29,13 @@ async function main() {
     ])
     .onConflictDoNothing({ target: accessLevels.slug });
 
-  const [ownerLevel] = await db.select().from(accessLevels).where(eq(accessLevels.slug, "owner")).limit(1);
+  const [ownerLevel] = await readDb.select().from(accessLevels).where(eq(accessLevels.slug, "owner")).limit(1);
 
   if (!ownerLevel) {
     throw new Error("Expected access level 'owner' after seed");
   }
 
-  const [existingUser] = await db.select().from(user).where(eq(user.email, OWNER_EMAIL)).limit(1);
+  const [existingUser] = await readDb.select().from(user).where(eq(user.email, OWNER_EMAIL)).limit(1);
 
   if (existingUser) {
     console.info("Seed skipped: default owner already exists (%s)", OWNER_EMAIL);
