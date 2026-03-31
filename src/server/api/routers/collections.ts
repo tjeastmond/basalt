@@ -4,8 +4,9 @@ import { z } from "zod";
 
 import { db, collections } from "@/db";
 import {
-  collectionFieldsArraySchema,
+  collectionFieldsLooseArraySchema,
   computeSchemaChangeFlags,
+  finalizeFieldDefinitions,
   parseCollectionFields,
   setsEqual,
 } from "@/lib/collection-fields";
@@ -20,14 +21,14 @@ const collectionSlugSchema = z
 const createInput = z.object({
   slug: collectionSlugSchema,
   name: z.string().min(1).max(200),
-  fields: collectionFieldsArraySchema,
+  fields: collectionFieldsLooseArraySchema,
 });
 
 const updateInput = z.object({
   id: z.string().uuid(),
   slug: collectionSlugSchema,
   name: z.string().min(1).max(200),
-  fields: collectionFieldsArraySchema,
+  fields: collectionFieldsLooseArraySchema,
   /** Must list every removed field id when the update drops fields (explicit confirmation). */
   removedFieldIds: z.array(z.string().uuid()).optional(),
   /** Must list every field id whose type changes in an unsafe way, after user confirms. */
@@ -59,7 +60,7 @@ export const collectionsRouter = router({
   }),
 
   create: adminProcedure.input(createInput).mutation(async ({ input }) => {
-    const fields = collectionFieldsArraySchema.parse(input.fields);
+    const fields = finalizeFieldDefinitions(input.fields);
     const [existing] = await db
       .select({ id: collections.id })
       .from(collections)
@@ -91,7 +92,7 @@ export const collectionsRouter = router({
     }
 
     const previousFields = parseCollectionFields(existing.fields);
-    const nextFields = collectionFieldsArraySchema.parse(input.fields);
+    const nextFields = finalizeFieldDefinitions(input.fields);
 
     const [slugConflict] = await db
       .select({ id: collections.id })

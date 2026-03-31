@@ -9,6 +9,88 @@ const machineNameSchema = z
   .max(63)
   .regex(/^[a-z][a-z0-9_]*$/, "Use lowercase letters, numbers, and underscores; start with a letter.");
 
+/** API / form input before normalization (allows spaces, capitals, etc.). */
+export const collectionFieldLooseSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).max(200),
+  type: collectionFieldTypeSchema,
+  required: z.boolean().default(false),
+  unique: z.boolean().default(false),
+  defaultValue: z.unknown().optional(),
+});
+
+export const collectionFieldsLooseArraySchema = z.array(collectionFieldLooseSchema);
+
+export type CollectionFieldLooseInput = z.infer<typeof collectionFieldLooseSchema>;
+
+/**
+ * Turn a human-entered label into a stable machine name (`a-z`, digits, underscores).
+ */
+export function normalizeFieldMachineName(raw: string): string {
+  let s = raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_");
+
+  if (s.length === 0) {
+    return "field";
+  }
+  if (!/^[a-z]/.test(s)) {
+    s = `f_${s}`;
+  }
+  s = s
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  if (s.length === 0 || !/^[a-z]/.test(s)) {
+    return "field";
+  }
+  if (s.length > 63) {
+    s = s.slice(0, 63).replace(/_+$/g, "");
+  }
+  if (s.length === 0 || !/^[a-z][a-z0-9_]*$/.test(s)) {
+    return "field";
+  }
+  return s;
+}
+
+/**
+ * Ensure unique machine names in field order (second and later collisions get `_2`, `_3`, …).
+ */
+export function dedupeMachineNames(bases: string[]): string[] {
+  const used = new Set<string>();
+  const out: string[] = [];
+
+  for (const base of bases) {
+    let candidate = base;
+    let i = 2;
+    while (used.has(candidate)) {
+      const suffix = `_${i}`;
+      i += 1;
+      let prefix = base.slice(0, Math.max(1, 63 - suffix.length)).replace(/_+$/g, "");
+      if (prefix.length === 0) {
+        prefix = "f";
+      }
+      candidate = `${prefix}${suffix}`;
+      if (candidate.length > 63) {
+        candidate = candidate.slice(0, 63).replace(/_+$/g, "");
+      }
+      if (!/^[a-z][a-z0-9_]*$/.test(candidate)) {
+        candidate = `f_${i - 1}`.slice(0, 63).replace(/_+$/g, "");
+        if (!/^[a-z]/.test(candidate)) {
+          candidate = "field";
+        }
+      }
+    }
+    used.add(candidate);
+    out.push(candidate);
+  }
+
+  return out;
+}
+
 export const collectionFieldDefinitionSchema = z
   .object({
     id: z.string().uuid(),
@@ -64,6 +146,17 @@ export const collectionFieldsArraySchema = z.array(collectionFieldDefinitionSche
     seen.add(name);
   }
 });
+
+/** Normalize names, dedupe, then validate defaults and uniqueness (strict storage shape). */
+export function finalizeFieldDefinitions(loose: CollectionFieldLooseInput[]): CollectionFieldDefinition[] {
+  const bases = loose.map((f) => normalizeFieldMachineName(f.name));
+  const names = dedupeMachineNames(bases);
+  const merged = loose.map((f, i) => ({
+    ...f,
+    name: names[i]!,
+  }));
+  return collectionFieldsArraySchema.parse(merged);
+}
 
 export function isSafeTypeTransition(from: CollectionFieldType, to: CollectionFieldType): boolean {
   if (from === to) {

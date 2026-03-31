@@ -2,11 +2,11 @@
 
 ## Summary
 
-Build a single-tenant, PocketBase-inspired admin and API for collections and records with Owner/Admin/User roles, schema migrations, CRUD UI, and headless API access. Use Next.js App Router under `src/`, shadcn + `next-themes`, and the `@` -> `src/` alias.
+Build a single-tenant, PocketBase-inspired admin and API for collections and records with Owner/Admin/User roles, schema migrations, CRUD UI, and headless API access. **Each collection’s row data lives in a physical Postgres table**; the `collections` row remains the source of truth for field definitions, and the app uses that metadata to **generate and migrate** the backing table (DDL). Use Next.js App Router under `src/`, shadcn + `next-themes`, and the `@` -> `src/` alias.
 
 ## Working on next
 
-Records CRUD UI and runtime record storage against collection metadata.
+Records CRUD UI and server logic against **physical per-collection tables** (DDL: create / alter / drop table when collection schema changes).
 
 ## Foundation and Tooling
 
@@ -50,16 +50,28 @@ Records CRUD UI and runtime record storage against collection metadata.
 - [x] Support field renames
 - [x] Restrict unsafe type changes
 - [x] Require explicit confirmation before deleting fields
-- [x] Do not generate migrations for collection creation or schema changes
-- [x] Store collection schemas as metadata and apply changes at runtime
+- [ ] **Physical table per collection**: on create and on schema change, run DDL (`CREATE TABLE`, `ALTER TABLE`, renames / drops per confirmation rules) so row data lives in real columns—not a generic jsonb payload or in-memory-only structure.
+- [ ] **Drizzle checked-in migrations** only for platform/base tables (`users`, auth, `collections` metadata registry, etc.); **per-collection data tables** are not separate `drizzle-kit generate` artifacts—they are applied by the app with controlled SQL (no checked-in migration file per user collection).
+- [ ] **Stable physical table identity** tied to `collections.id` (immutable); slug / display renames update metadata and may rename the table per a defined policy without orphaning data.
+- [ ] **Column type mapping**: e.g. text → `text`, number → `double precision` (or `numeric`), boolean → `boolean`, date → `timestamptz`, json → `jsonb`; plus system columns for audit when Audit Trail ships (`created_at`, `updated_at`, `created_by`, `updated_by`).
+
+```mermaid
+flowchart LR
+  collectionsRow[collections_row_metadata]
+  ddl[app_DDL_layer]
+  physTable[collection_physical_table]
+  collectionsRow --> ddl
+  ddl --> physTable
+```
 
 ## Records and Admin UI
 
+- [ ] List / insert / update / delete rows with **parameterized SQL** against the collection’s physical table (resolve table and columns from `collections` metadata by `collection_id`).
 - [ ] CRUD UI for any collection
 - [ ] Forms for editing any collections or tables should slide into view or load on a whole new page
 - [ ] Add a settings section with the option to have collections slide in/out from the right, or display a whole page
 - [ ] Table view with pagination (default 25 per page)
-- [ ] Search with simple contains across text fields
+- [ ] Search with simple contains across **text columns** (e.g. `ILIKE` on mapped `text` fields)
 - [ ] Default sort by `created_at` desc with user override
 - [ ] Record detail view with inline editing
 - [ ] Validation rules
@@ -81,22 +93,22 @@ Records CRUD UI and runtime record storage against collection metadata.
 
 ## Import and Export
 
-- [ ] Export collections as JSON, SQL, or CSV
-- [ ] Include collection schema + data in export payloads
+- [ ] Export collections as JSON, SQL, or CSV (**schema metadata + row data from physical tables**)
+- [ ] Include collection schema + data in export payloads (tables + rows)
 - [ ] Import into another instance from JSON, SQL, or CSV exports
 - [ ] Validate import compatibility and surface errors
 
 ## Audit Trail
 
-- [ ] Add audit fields to all collections
+- [ ] Add audit fields on **each collection’s physical data table** as normal columns (`created_at`, `updated_at`, `created_by`, `updated_by`), not only in registry metadata
 - [ ] `created_at`, `updated_at`, `created_by`, `updated_by`
 - [ ] Audit fields are system-owned and immutable
 - [ ] Show audit fields read-only in record detail
 
 ## Example Content and Seeds
 
-- [ ] Create default `posts` collection
-- [ ] Seed local dev data for `posts`
+- [ ] Create default `posts` collection (metadata row + **physical table** via DDL)
+- [ ] Seed local dev data into the **`posts` physical table**
 
 ## UI and UX
 
@@ -107,7 +119,7 @@ Records CRUD UI and runtime record storage against collection metadata.
 
 - [x] Local Docker Postgres setup
 - [x] Drizzle config and migrations pipeline (`drizzle.config.ts`, `pnpm db:generate` / `db:migrate` / `db:push`, `pnpm db:seed`)
-- [ ] Migrations only for base tables: users, superusers, posts, logs, collections metadata
+- [ ] **Checked-in Drizzle migrations** = platform/base schema only (users, auth, `collections` metadata registry, logs, etc.); **per-collection data tables** are created and evolved **at runtime** via app-issued DDL with idempotent guards and logging (backups / runbooks TBD for production)
 - [ ] Environment config for local and production
 - [ ] Vercel deployment uses App Router defaults
 
@@ -115,7 +127,7 @@ Records CRUD UI and runtime record storage against collection metadata.
 
 - [ ] Smoke test: auth flow (login, logout)
 - [ ] Smoke test: create/edit/delete collection
-- [ ] Smoke test: create/edit/delete record
+- [ ] Smoke test: create/edit/delete **record rows in a collection’s physical table**
 - [ ] Smoke test: API key access for read and write
 - [ ] Build passes with `pnpm build`
 

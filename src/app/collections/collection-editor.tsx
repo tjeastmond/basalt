@@ -291,6 +291,10 @@ export function CollectionEditor(props: CollectionEditorProps) {
                       className="border-input rounded-md border px-3 py-2 text-sm"
                       disabled={busy}
                     />
+                    <span className="text-muted-foreground text-xs">
+                      Stored as a lowercase identifier; spaces and punctuation become underscores (e.g. Post Title →
+                      post_title).
+                    </span>
                   </label>
                   <label className="flex flex-col gap-1 text-sm">
                     <span>Type</span>
