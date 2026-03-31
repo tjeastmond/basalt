@@ -39,7 +39,7 @@ Upcoming auth and user-management work before or alongside collections.
 - [x] Policy consistency: reuse or extend `role-policy` and the same Owner-only rules as `updateAccessLevel` so admins cannot escalate beyond existing rules when editing roles or sensitive fields.
 - [x] Admin edit surface: at minimum name + optional new password; email change only with an explicit rule (uniqueness, verification, Better Auth support).
 - [x] Tests: Vitest coverage or smoke coverage for self password change and admin-set password (can align with Tests and Acceptance later).
-- [ ] Avatar: By default set random avatar using: https://robohash.org
+- [ ] Avatar: By default set random avatar using: https://robohash.org (later)
 
 ## Collections and Schema
 
