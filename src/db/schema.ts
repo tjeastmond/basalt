@@ -1,5 +1,7 @@
 import { relations } from "drizzle-orm";
-import { boolean, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+import type { CollectionFieldDefinition } from "@/lib/collection-fields";
 
 export const accessLevels = pgTable("access_levels", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -70,6 +72,18 @@ export const account = pgTable(
   },
   (table) => [index("accounts_userId_idx").on(table.userId)],
 );
+
+export const collections = pgTable("collections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
+  name: text("name").notNull(),
+  fields: jsonb("fields").$type<CollectionFieldDefinition[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
 
 export const verification = pgTable(
   "verification",

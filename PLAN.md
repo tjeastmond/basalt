@@ -6,7 +6,7 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Working on next
 
-Upcoming auth and user-management work before or alongside collections.
+Records CRUD UI and runtime record storage against collection metadata.
 
 ## Foundation and Tooling
 
@@ -43,19 +43,21 @@ Upcoming auth and user-management work before or alongside collections.
 
 ## Collections and Schema
 
-- [ ] Create, edit, delete collections
-- [ ] Field types: text, number, boolean, date, json
-- [ ] Field settings: required, default value, unique
-- [ ] Enforce schema change rules
-- [ ] Support field renames
-- [ ] Restrict unsafe type changes
-- [ ] Require explicit confirmation before deleting fields
-- [ ] Do not generate migrations for collection creation or schema changes
-- [ ] Store collection schemas as metadata and apply changes at runtime
+- [x] Create, edit, delete collections
+- [x] Field types: text, number, boolean, date, json
+- [x] Field settings: required, default value, unique
+- [x] Enforce schema change rules
+- [x] Support field renames
+- [x] Restrict unsafe type changes
+- [x] Require explicit confirmation before deleting fields
+- [x] Do not generate migrations for collection creation or schema changes
+- [x] Store collection schemas as metadata and apply changes at runtime
 
 ## Records and Admin UI
 
 - [ ] CRUD UI for any collection
+- [ ] Forms for editing any collections or tables should slide into view or load on a whole new page
+- [ ] Add a settings section with the option to have collections slide in/out from the right, or display a whole page
 - [ ] Table view with pagination (default 25 per page)
 - [ ] Search with simple contains across text fields
 - [ ] Default sort by `created_at` desc with user override

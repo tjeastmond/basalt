@@ -56,9 +56,14 @@ function HeaderAuthNavInner({
             Profile
           </Link>
           {showUsersLink ? (
-            <Link href="/admin/users" className={linkClass}>
-              Users
-            </Link>
+            <>
+              <Link href="/collections" className={linkClass}>
+                Collections
+              </Link>
+              <Link href="/admin/users" className={linkClass}>
+                Users
+              </Link>
+            </>
           ) : null}
           <button type="button" onClick={handleLogout} className={linkClass}>
             Log out

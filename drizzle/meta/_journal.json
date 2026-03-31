@@ -22,6 +22,13 @@
       "when": 1774977492338,
       "tag": "0002_plural_auth_constraint_names",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774984113134,
+      "tag": "0003_collections_metadata",
+      "breakpoints": true
     }
   ]
 }

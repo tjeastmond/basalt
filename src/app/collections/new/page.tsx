@@ -3,13 +3,17 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { CollectionEditor } from "@/app/collections/collection-editor";
 import { db, user } from "@/db";
-import { getMemberFromHeaders } from "@/lib/member";
+import { getMemberFromHeaders, isAdminOrOwner } from "@/lib/member";
 
 export default async function NewCollectionPage() {
   const member = await getMemberFromHeaders(await headers());
   if (!member) {
     redirect("/login");
+  }
+  if (!isAdminOrOwner(member)) {
+    redirect("/");
   }
 
   if (!member.onboardingCompletedAt) {
@@ -17,14 +21,14 @@ export default async function NewCollectionPage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 px-4 py-16">
-      <div className="space-y-2 text-center">
-        <h1 className="text-xl font-semibold tracking-tight">Collections</h1>
+    <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-16">
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">New collection</h1>
         <p className="text-sm text-muted-foreground">
-          Collection metadata and runtime schema changes are next on the roadmap. For now, use this page as a
-          destination from onboarding; the full builder will land in the Collections milestone.
+          Choose a slug and add fields. You can start with an empty field list and iterate later.
         </p>
       </div>
+      <CollectionEditor mode="create" onCancelHref="/collections" />
       <p className="text-center text-sm">
         <Link href="/" className="text-foreground underline-offset-4 hover:underline">
           Back to home
