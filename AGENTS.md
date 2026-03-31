@@ -45,16 +45,24 @@ Tests run with **Vitest** in a **jsdom** environment (`vitest.config.ts`). Use `
 | `db:push`      | Drizzle: push schema (dev shortcut)     |
 | `db:seed`      | Seed access levels + default Owner user |
 
-## Gotcha: Better Auth session UI (header / nav)
+## Gotchas
 
-When showing **Sign in** vs **Log out** from `authClient.useSession()`:
+### Do not branch on `isPending` alone
 
-1. **Do not branch on `isPending` alone** (e.g. a `…` placeholder). Better Auth refetches often; `isPending` + `data === null` flickers between states and looks broken.
+When showing **Sign in** vs **Log out** from `authClient.useSession()`, do not use only `isPending` (e.g. a `…` placeholder). Better Auth refetches often; `isPending` with `data === null` flickers between states and looks broken.
 
-2. **Pass a server hint for the first paint.** The async `AppHeader` calls `getServerSession()` and passes `initialSignedIn` into the client nav. Use it only while the client session query is still pending and `data` is still null, so logged-in users do not flash **Sign in** on load.
+### Pass a server hint for the first paint
 
-3. **Server props lag behind logout.** After `signOut`, the layout may still have served `initialSignedIn: true` until `router.refresh()` completes. Do not apply the server hint on **`/login`**, and use a short **`loggingOut`** flag (set when Log out is clicked) so the hint is ignored during sign-out.
+The async `AppHeader` calls `getServerSession()` and passes `initialSignedIn` into the client nav. Use that hint only while the client session query is still pending and `data` is still null, so logged-in users do not flash **Sign in** on load.
 
-4. **Remount client nav when the pathname changes** (e.g. outer `HeaderAuthNav` renders inner UI with `key={pathname}`) so `loggingOut` and similar state reset cleanly without effects that sync refs or fight the React Compiler ESLint rules.
+### Server props lag behind logout
 
-5. **`drizzle-kit` does not load `.env.local`.** [`drizzle.config.ts`](drizzle.config.ts) uses `dotenv` for `.env.local` / `.env` so `pnpm db:migrate` and friends see `DATABASE_URL`.
+After `signOut`, the layout may still have served `initialSignedIn: true` until `router.refresh()` completes. Do not apply the server hint on **`/login`**, and use a short **`loggingOut`** flag (set when Log out is clicked) so the hint is ignored during sign-out.
+
+### Remount client nav when the pathname changes
+
+Outer `HeaderAuthNav` should render inner UI with `key={pathname}` so `loggingOut` and similar state reset cleanly without effects that sync refs or fight the React Compiler ESLint rules.
+
+### Drizzle Kit and `.env.local`
+
+`drizzle-kit` does not load `.env.local` by default. [`drizzle.config.ts`](drizzle.config.ts) uses `dotenv` for `.env.local` / `.env` so `pnpm db:migrate` and friends see `DATABASE_URL`.
