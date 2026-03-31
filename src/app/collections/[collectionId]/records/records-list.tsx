@@ -58,7 +58,7 @@ export function RecordsList(props: Props) {
             <input
               value={searchDraft}
               onChange={(e) => setSearchDraft(e.target.value)}
-              className="border-input min-w-[12rem] rounded-md border px-3 py-2 text-sm"
+              className="border-input min-w-48 rounded-md border px-3 py-2 text-sm"
               placeholder="Contains…"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -96,7 +96,7 @@ export function RecordsList(props: Props) {
         <p className="text-muted-foreground text-sm">No records yet.</p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-border">
-          <table className="w-full min-w-[32rem] border-collapse text-sm">
+          <table className="w-full min-w-lg border-collapse text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40 text-left">
                 <th className="px-3 py-2 font-medium">id</th>
@@ -121,7 +121,7 @@ export function RecordsList(props: Props) {
                       </Link>
                     </td>
                     {tableFields.map((f) => (
-                      <td key={f.id} className="max-w-[14rem] truncate px-3 py-2">
+                      <td key={f.id} className="max-w-56 truncate px-3 py-2">
                         {formatCellValue(row[f.name])}
                       </td>
                     ))}

@@ -358,7 +358,7 @@ export function CollectionEditor(props: CollectionEditorProps) {
                       <textarea
                         value={defaultInputs[f.id] ?? ""}
                         onChange={(e) => setDefaultInput(f.id, e.target.value)}
-                        className="border-input min-h-[4rem] rounded-md border px-3 py-2 font-mono text-sm"
+                        className="border-input min-h-16 rounded-md border px-3 py-2 font-mono text-sm"
                         placeholder={f.type === "json" ? '{"key": "value"}' : undefined}
                         disabled={busy}
                       />

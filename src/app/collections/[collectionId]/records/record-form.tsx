@@ -281,7 +281,7 @@ function FieldInput(props: {
         <textarea
           value={props.value}
           onChange={(e) => props.onChange(e.target.value)}
-          className="border-input min-h-[6rem] rounded-md border px-3 py-2 font-mono text-sm"
+          className="border-input min-h-24 rounded-md border px-3 py-2 font-mono text-sm"
           disabled={props.disabled}
         />
       ) : (
