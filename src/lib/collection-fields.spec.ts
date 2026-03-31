@@ -9,6 +9,7 @@ import {
   isSafeTypeTransition,
   normalizeFieldMachineName,
   setsEqual,
+  validateValueAgainstFieldConstraints,
 } from "@/lib/collection-fields";
 
 describe("humanizeFieldMachineName", () => {
@@ -134,5 +135,56 @@ describe("finalizeFieldDefinitions", () => {
     ]);
     expect(out[0]!.name).toBe("post_title");
     expect(out[1]!.name).toBe("body_html");
+  });
+
+  it("preserves text length and number range metadata", () => {
+    const id = "cccccccc-bbbb-4ccc-a333-eeeeeeeeeeee";
+    const out = finalizeFieldDefinitions([
+      {
+        id,
+        name: "code",
+        type: "text",
+        required: false,
+        unique: false,
+        minLength: 2,
+        maxLength: 10,
+      },
+    ]);
+    expect(out[0]!.minLength).toBe(2);
+    expect(out[0]!.maxLength).toBe(10);
+  });
+});
+
+describe("validateValueAgainstFieldConstraints", () => {
+  it("enforces text length bounds", () => {
+    const field = { name: "title", type: "text" as const, minLength: 2, maxLength: 4 };
+    expect(validateValueAgainstFieldConstraints(field, "a")).toMatch(/at least 2/);
+    expect(validateValueAgainstFieldConstraints(field, "abcde")).toMatch(/at most 4/);
+    expect(validateValueAgainstFieldConstraints(field, "ab")).toBeNull();
+  });
+
+  it("enforces number min and max", () => {
+    const field = { name: "n", type: "number" as const, min: 0, max: 10 };
+    expect(validateValueAgainstFieldConstraints(field, -1)).toMatch(/≥/);
+    expect(validateValueAgainstFieldConstraints(field, 11)).toMatch(/≤/);
+    expect(validateValueAgainstFieldConstraints(field, 5)).toBeNull();
+  });
+});
+
+describe("collectionFieldsArraySchema constraints", () => {
+  it("rejects minLength on non-text fields", () => {
+    const id = "dddddddd-bbbb-4ddd-d444-eeeeeeeeeeee";
+    const result = collectionFieldsArraySchema.safeParse([
+      { id, name: "x", type: "number", required: false, unique: false, minLength: 1 },
+    ]);
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects min greater than max for numbers", () => {
+    const id = "eeeeeeee-bbbb-4eee-e555-eeeeeeeeeeee";
+    const result = collectionFieldsArraySchema.safeParse([
+      { id, name: "x", type: "number", required: false, unique: false, min: 5, max: 1 },
+    ]);
+    expect(result.success).toBe(false);
   });
 });

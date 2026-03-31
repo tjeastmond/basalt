@@ -146,23 +146,23 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 **Admin routes:** `/collections/[collectionId]/records`, `…/records/new`, `…/records/[recordId]` under [`src/app/collections/[collectionId]/records/`](src/app/collections/[collectionId]/records/). List + links from [`collections-list.tsx`](src/app/collections/collections-list.tsx) and **View records** on the collection editor.
 
-**Pagination:** `LIMIT` / `OFFSET` (default **25** per page). **Sort:** `ORDER BY id DESC` until Audit Trail adds `created_at` on data tables.
+**Pagination:** `LIMIT` / `OFFSET` (default **25** per page). **Sort:** default `ORDER BY created_at DESC` (tie-break `id DESC`); physical tables include **`created_at timestamptz NOT NULL DEFAULT now()`** (added on create, and `ALTER TABLE … ADD COLUMN IF NOT EXISTS` when loading targets / syncing schema). The records list UI can sort by **Created**, **id**, or any collection field (asc/desc).
 
 **Search:** Single bound pattern across all **`text`** fields: `ILIKE` with `ESCAPE '\'`; user input escaped via `escapeIlikePattern` ([`src/lib/ilike-escape.ts`](src/lib/ilike-escape.ts); covered in [`src/lib/ilike-escape.spec.ts`](src/lib/ilike-escape.spec.ts)).
 
-**Records UX:** Create saves then redirects to the **records listing** (not the new row’s edit URL). Record create/edit uses a **`<form>`** so **Enter** submits from single-line inputs. **Machine field names** (`snake_case`) are shown human-readably in the table and record form via **`humanizeFieldMachineName`** in [`src/lib/collection-fields.ts`](src/lib/collection-fields.ts). **`buttonVariants`** for `Link` styling on server pages lives in [`src/components/ui/button-variants.ts`](src/components/ui/button-variants.ts) (no `"use client"` on that module).
+**Records UX:** Create saves then redirects to the **records listing** (not the new row’s edit URL). Record create/edit uses a **`<form>`** so **Enter** submits from single-line inputs. The records table supports **inline editing** via an expandable row ([`records-list.tsx`](src/app/collections/[collectionId]/records/records-list.tsx)) that reuses [`record-form.tsx`](src/app/collections/[collectionId]/records/record-form.tsx) field inputs; the dedicated edit page remains. **Field validation** (optional min/max **text length** and **number** bounds) is stored in collection metadata ([`collection-fields.ts`](src/lib/collection-fields.ts)), edited in [`collection-editor.tsx`](src/app/collections/collection-editor.tsx), and enforced on create/update in [`collection-records.ts`](src/server/collection-records.ts) plus client-side in the record form. **Machine field names** (`snake_case`) are shown human-readably in the table and record form via **`humanizeFieldMachineName`**. **`buttonVariants`** for `Link` styling on server pages lives in [`src/components/ui/button-variants.ts`](src/components/ui/button-variants.ts) (no `"use client"` on that module). **No Drizzle migration** is required for `created_at` on `col_*` tables: the app adds the column at runtime (`ADD COLUMN IF NOT EXISTS` when loading a collection target or syncing schema).
 
 - [x] List / insert / update / delete rows with **parameterized SQL** against the collection’s physical table (resolve table and columns from `collections` metadata by `collection_id`).
 - [x] CRUD UI for any collection
-- [ ] Forms for editing any collections or tables should slide into view or load on a whole new page
-- [ ] Add a settings section with the option to have collections slide in/out from the right, or display a whole page
+- [ ] Forms for editing any collections or tables should slide into view or load on a whole new page (later)
+- [ ] Add a settings section with the option to have collections slide in/out from the right, or display a whole page (later)
 - [x] Table view with pagination (default 25 per page)
 - [x] Search with simple contains across **text columns** (e.g. `ILIKE` on mapped `text` fields)
-- [ ] Default sort by `created_at` desc with user override
-- [ ] Record detail view with inline editing (dedicated **edit page** with form exists; not yet inline in the table)
-- [ ] Validation rules (metadata-driven min/max, etc.)
-- [ ] Text min and max length
-- [ ] Number min and max
+- [x] Default sort by `created_at` desc with user override
+- [x] Record detail view with inline editing (expandable row on the records table; full **edit page** still available)
+- [x] Validation rules (metadata-driven min/max, etc.)
+- [x] Text min and max length
+- [x] Number min and max
 - [x] JSON validity checks (parse/validate on write in app + forms)
 - [x] Display validation errors in UI (form + tRPC error messages)
 - [x] Human-friendly labels for snake_case field names in records list + record form (machine `name` unchanged in API/DB)
@@ -187,10 +187,10 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 ## Audit Trail
 
-- [ ] Add audit fields on **each collection’s physical data table** as normal columns (`created_at`, `updated_at`, `created_by`, `updated_by`), not only in registry metadata
-- [ ] `created_at`, `updated_at`, `created_by`, `updated_by`
-- [ ] Audit fields are system-owned and immutable
-- [ ] Show audit fields read-only in record detail
+- [x] `created_at` on **each collection’s physical data table** (`timestamptz NOT NULL DEFAULT now()` on new tables; `ADD COLUMN IF NOT EXISTS` for legacy tables when the app loads the target or runs schema sync). Used for default list ordering. Rows that existed before the column was added get a backfill timestamp at add time, not the original insert time.
+- [ ] `updated_at`, `created_by`, `updated_by` on physical data tables
+- [ ] Audit fields beyond `created_at` are system-owned and immutable from record APIs
+- [ ] Show full audit block read-only on record detail (list/table already shows **Created**)
 
 ## Example Content and Seeds
 

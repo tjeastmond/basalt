@@ -34,10 +34,15 @@ export default async function NewCollectionRecordPage(props: Props) {
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 px-4 py-16">
       <div className="space-y-1">
         <h1 className="text-xl font-semibold tracking-tight">New record · {row.name}</h1>
-        <p className="text-sm text-muted-foreground">Values are validated before insert into the collection data table.</p>
+        <p className="text-sm text-muted-foreground">
+          Values are validated before insert into the collection data table.
+        </p>
       </div>
       <RecordForm key="new" collectionId={collectionId} fields={fields} mode="create" />
-      <Link href={`/collections/${collectionId}/records`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}>
+      <Link
+        href={`/collections/${collectionId}/records`}
+        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}
+      >
         ← Back to records
       </Link>
     </main>

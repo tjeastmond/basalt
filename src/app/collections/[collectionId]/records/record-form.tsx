@@ -9,12 +9,13 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import {
   humanizeFieldMachineName,
+  validateValueAgainstFieldConstraints,
   type CollectionFieldDefinition,
   type CollectionFieldType,
 } from "@/lib/collection-fields";
 import { trpc } from "@/trpc/react";
 
-function valueToInput(field: CollectionFieldDefinition, raw: unknown): string {
+export function valueToInput(field: CollectionFieldDefinition, raw: unknown): string {
   if (raw === null || raw === undefined) {
     return "";
   }
@@ -30,7 +31,7 @@ function valueToInput(field: CollectionFieldDefinition, raw: unknown): string {
   return String(raw);
 }
 
-function parseFieldInput(
+export function parseFieldInput(
   field: CollectionFieldDefinition,
   raw: string,
 ): { ok: true; value: unknown } | { ok: false; message: string } {
@@ -39,12 +40,21 @@ function parseFieldInput(
     return { ok: true, value: undefined };
   }
   switch (field.type) {
-    case "text":
+    case "text": {
+      const msg = validateValueAgainstFieldConstraints(field, raw);
+      if (msg) {
+        return { ok: false, message: msg };
+      }
       return { ok: true, value: raw };
+    }
     case "number": {
       const n = Number(trimmed);
       if (!Number.isFinite(n)) {
         return { ok: false, message: `"${field.name}" must be a finite number.` };
+      }
+      const msg = validateValueAgainstFieldConstraints(field, n);
+      if (msg) {
+        return { ok: false, message: msg };
       }
       return { ok: true, value: n };
     }
@@ -199,10 +209,18 @@ export function RecordForm(props: Props) {
 
       <div className="grid max-w-xl gap-4">
         {props.fields.length === 0 ? (
-          <p className="text-muted-foreground text-sm">This collection has no custom fields. Saving creates a row with only an id.</p>
+          <p className="text-muted-foreground text-sm">
+            This collection has no custom fields. Saving creates a row with only an id.
+          </p>
         ) : null}
         {props.fields.map((f) => (
-          <FieldInput key={f.id} field={f} value={inputs[f.name] ?? ""} onChange={(v) => setField(f.name, v)} disabled={busy} />
+          <FieldInput
+            key={f.id}
+            field={f}
+            value={inputs[f.name] ?? ""}
+            onChange={(v) => setField(f.name, v)}
+            disabled={busy}
+          />
         ))}
       </div>
 
@@ -233,7 +251,7 @@ export function RecordForm(props: Props) {
   );
 }
 
-function FieldInput(props: {
+export function FieldInput(props: {
   field: CollectionFieldDefinition;
   value: string;
   onChange: (v: string) => void;
@@ -293,7 +311,23 @@ function FieldInput(props: {
           autoComplete="off"
         />
       )}
-      <span className="text-muted-foreground text-xs">{hint(f.type)}</span>
+      <span className="text-muted-foreground text-xs">
+        {hint(f.type)}
+        {f.type === "text" && (f.minLength !== undefined || f.maxLength !== undefined) ? (
+          <>
+            {" "}
+            {f.minLength !== undefined ? `Min length ${f.minLength}. ` : null}
+            {f.maxLength !== undefined ? `Max length ${f.maxLength}.` : null}
+          </>
+        ) : null}
+        {f.type === "number" && (f.min !== undefined || f.max !== undefined) ? (
+          <>
+            {" "}
+            {f.min !== undefined ? `Min ${f.min}. ` : null}
+            {f.max !== undefined ? `Max ${f.max}.` : null}
+          </>
+        ) : null}
+      </span>
     </label>
   );
 }

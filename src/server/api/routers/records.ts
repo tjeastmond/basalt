@@ -34,6 +34,8 @@ const listInput = z.object({
   page: z.number().int().min(1).default(1),
   pageSize: z.number().int().min(1).max(100).default(25),
   search: z.string().max(500).optional(),
+  sortBy: z.string().max(63).optional(),
+  sortDir: z.enum(["asc", "desc"]).default("desc"),
 });
 
 export const recordsRouter = router({
@@ -46,8 +48,13 @@ export const recordsRouter = router({
         limit,
         offset,
         search: input.search,
+        sortBy: input.sortBy,
+        sortDir: input.sortDir,
       });
     } catch (e) {
+      if (e instanceof RecordValidationError) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
+      }
       const message = e instanceof Error ? e.message : "Failed to list records.";
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
     }

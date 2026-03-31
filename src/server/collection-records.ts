@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { collections, db, getPool } from "@/db";
 import type { CollectionFieldDefinition } from "@/lib/collection-fields";
-import { parseCollectionFields } from "@/lib/collection-fields";
+import { parseCollectionFields, validateValueAgainstFieldConstraints } from "@/lib/collection-fields";
 import { escapeIlikePattern } from "@/lib/ilike-escape";
 import { assertSafeSqlIdentifier, collectionDataTableName } from "@/lib/collection-physical-table";
 
@@ -36,6 +36,8 @@ export async function loadCollectionRecordsTarget(collectionId: string): Promise
     return null;
   }
 
+  await ensureCreatedAtColumn(row.tableSuffix);
+
   const fields = parseCollectionFields(row.fields);
   const tableSql = collectionDataTableName(row.tableSuffix);
   return {
@@ -53,6 +55,12 @@ function assertKnownFieldName(fields: CollectionFieldDefinition[], name: string)
     throw new RecordValidationError(`Unknown field "${name}".`);
   }
   return field;
+}
+
+async function ensureCreatedAtColumn(tableSuffix: string): Promise<void> {
+  const pool = getPool();
+  const table = collectionDataTableName(tableSuffix);
+  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`);
 }
 
 function coerceFieldValue(field: CollectionFieldDefinition, raw: unknown, allowNull: boolean): unknown {
@@ -128,6 +136,15 @@ function coerceFieldValue(field: CollectionFieldDefinition, raw: unknown, allowN
   }
 }
 
+function coerceAndValidateFieldValue(field: CollectionFieldDefinition, raw: unknown, allowNull: boolean): unknown {
+  const coerced = coerceFieldValue(field, raw, allowNull);
+  const msg = validateValueAgainstFieldConstraints(field, coerced);
+  if (msg) {
+    throw new RecordValidationError(msg);
+  }
+  return coerced;
+}
+
 function buildInsertColumns(
   fields: CollectionFieldDefinition[],
   input: Record<string, unknown>,
@@ -146,7 +163,7 @@ function buildInsertColumns(
       continue;
     }
 
-    const coerced = coerceFieldValue(field, raw, !field.required);
+    const coerced = coerceAndValidateFieldValue(field, raw, !field.required);
     assertSafeSqlIdentifier(field.name);
     columns.push(field.name);
     values.push(coerced);
@@ -171,7 +188,7 @@ function buildUpdateColumns(
     if (raw === undefined) {
       continue;
     }
-    const coerced = coerceFieldValue(field, raw, !field.required);
+    const coerced = coerceAndValidateFieldValue(field, raw, !field.required);
     columns.push(field.name);
     values.push(coerced);
   }
@@ -180,7 +197,7 @@ function buildUpdateColumns(
 }
 
 function selectColumnList(fields: CollectionFieldDefinition[]): string {
-  const parts = ["id"];
+  const parts = ["id", "created_at"];
   for (const f of fields) {
     assertSafeSqlIdentifier(f.name);
     parts.push(f.name);
@@ -188,10 +205,40 @@ function selectColumnList(fields: CollectionFieldDefinition[]): string {
   return parts.join(", ");
 }
 
+export type ListCollectionRecordsSortDir = "asc" | "desc";
+
+function buildOrderBySql(
+  target: CollectionRecordsTarget,
+  sortByInput: string | undefined,
+  sortDir: ListCollectionRecordsSortDir,
+): string {
+  const dir = sortDir === "asc" ? "ASC" : "DESC";
+  const raw = (sortByInput?.trim().toLowerCase() || "created_at").slice(0, 64);
+  const primary = raw.length > 0 ? raw : "created_at";
+
+  if (primary === "id") {
+    assertSafeSqlIdentifier("id");
+    return `ORDER BY id ${dir}`;
+  }
+  if (primary === "created_at") {
+    assertSafeSqlIdentifier("created_at");
+    return `ORDER BY created_at ${dir} NULLS LAST, id DESC`;
+  }
+
+  const field = target.fields.find((f) => f.name === primary);
+  if (!field) {
+    throw new RecordValidationError(`Unknown sort field "${sortByInput ?? ""}".`);
+  }
+  assertSafeSqlIdentifier(field.name);
+  return `ORDER BY ${field.name} ${dir} NULLS LAST, id DESC`;
+}
+
 export type ListCollectionRecordsParams = {
   limit: number;
   offset: number;
   search?: string;
+  sortBy?: string;
+  sortDir?: ListCollectionRecordsSortDir;
 };
 
 export type ListCollectionRecordsResult = {
@@ -225,7 +272,8 @@ export async function listCollectionRecords(
   queryParams.push(params.limit, params.offset);
   const limitIdx = queryParams.length - 1;
   const offsetIdx = queryParams.length;
-  const listSql = `SELECT ${cols} FROM ${target.tableSql} ${whereSql} ORDER BY id DESC LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
+  const orderSql = buildOrderBySql(target, params.sortBy, params.sortDir ?? "desc");
+  const listSql = `SELECT ${cols} FROM ${target.tableSql} ${whereSql} ${orderSql} LIMIT $${limitIdx} OFFSET $${offsetIdx}`;
 
   const countSql = `SELECT count(*)::int AS c FROM ${target.tableSql} ${whereSql}`;
   const countParams = queryParams.slice(0, queryParams.length - 2);

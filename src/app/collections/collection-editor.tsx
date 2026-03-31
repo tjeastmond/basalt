@@ -190,6 +190,18 @@ export function CollectionEditor(props: CollectionEditorProps) {
         required: f.required,
         unique: f.unique,
       };
+      if (f.minLength !== undefined) {
+        def.minLength = f.minLength;
+      }
+      if (f.maxLength !== undefined) {
+        def.maxLength = f.maxLength;
+      }
+      if (f.min !== undefined) {
+        def.min = f.min;
+      }
+      if (f.max !== undefined) {
+        def.max = f.max;
+      }
       if (parsed.value !== undefined) {
         def.defaultValue = parsed.value;
       }
@@ -249,7 +261,10 @@ export function CollectionEditor(props: CollectionEditorProps) {
 
       {props.mode === "edit" ? (
         <p className="text-sm">
-          <Link href={`/collections/${props.collectionId}/records`} className="text-primary underline-offset-4 hover:underline">
+          <Link
+            href={`/collections/${props.collectionId}/records`}
+            className="text-primary underline-offset-4 hover:underline"
+          >
             View records
           </Link>{" "}
           <span className="text-muted-foreground">for this collection.</span>
@@ -312,7 +327,16 @@ export function CollectionEditor(props: CollectionEditorProps) {
                     <span>Type</span>
                     <select
                       value={f.type}
-                      onChange={(e) => updateField(f.id, { type: e.target.value as CollectionFieldType })}
+                      onChange={(e) => {
+                        const t = e.target.value as CollectionFieldType;
+                        updateField(f.id, {
+                          type: t,
+                          minLength: undefined,
+                          maxLength: undefined,
+                          min: undefined,
+                          max: undefined,
+                        });
+                      }}
                       className="border-input rounded-md border px-3 py-2 text-sm"
                       disabled={busy}
                     >
@@ -341,6 +365,90 @@ export function CollectionEditor(props: CollectionEditorProps) {
                     />
                     Unique
                   </label>
+                  {f.type === "text" ? (
+                    <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Min length (optional)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={f.minLength ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "") {
+                              updateField(f.id, { minLength: undefined });
+                              return;
+                            }
+                            const n = Number.parseInt(v, 10);
+                            updateField(f.id, { minLength: Number.isFinite(n) && n >= 0 ? n : undefined });
+                          }}
+                          className="border-input rounded-md border px-3 py-2 text-sm"
+                          disabled={busy}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Max length (optional)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={f.maxLength ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v === "") {
+                              updateField(f.id, { maxLength: undefined });
+                              return;
+                            }
+                            const n = Number.parseInt(v, 10);
+                            updateField(f.id, { maxLength: Number.isFinite(n) && n >= 0 ? n : undefined });
+                          }}
+                          className="border-input rounded-md border px-3 py-2 text-sm"
+                          disabled={busy}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
+                  {f.type === "number" ? (
+                    <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Min value (optional)</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={f.min ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value.trim();
+                            if (v === "") {
+                              updateField(f.id, { min: undefined });
+                              return;
+                            }
+                            const n = Number(v);
+                            updateField(f.id, { min: Number.isFinite(n) ? n : undefined });
+                          }}
+                          className="border-input rounded-md border px-3 py-2 text-sm"
+                          disabled={busy}
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1 text-sm">
+                        <span>Max value (optional)</span>
+                        <input
+                          type="number"
+                          step="any"
+                          value={f.max ?? ""}
+                          onChange={(e) => {
+                            const v = e.target.value.trim();
+                            if (v === "") {
+                              updateField(f.id, { max: undefined });
+                              return;
+                            }
+                            const n = Number(v);
+                            updateField(f.id, { max: Number.isFinite(n) ? n : undefined });
+                          }}
+                          className="border-input rounded-md border px-3 py-2 text-sm"
+                          disabled={busy}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                   <label className="col-span-full flex flex-col gap-1 text-sm">
                     <span>Default (optional)</span>
                     {f.type === "boolean" ? (

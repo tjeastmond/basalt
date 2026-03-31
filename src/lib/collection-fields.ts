@@ -20,6 +20,10 @@ export const collectionFieldLooseSchema = z.object({
   required: z.boolean().default(false),
   unique: z.boolean().default(false),
   defaultValue: z.unknown().optional(),
+  minLength: z.number().int().min(0).optional(),
+  maxLength: z.number().int().min(0).optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
 });
 
 export const collectionFieldsLooseArraySchema = z.array(collectionFieldLooseSchema);
@@ -106,6 +110,45 @@ export function dedupeMachineNames(bases: string[]): string[] {
   return out;
 }
 
+type FieldConstraintTarget = {
+  name: string;
+  type: CollectionFieldType;
+  minLength?: number;
+  maxLength?: number;
+  min?: number;
+  max?: number;
+};
+
+/**
+ * Returns a user-facing validation message, or null when the value satisfies optional field constraints.
+ */
+export function validateValueAgainstFieldConstraints(field: FieldConstraintTarget, value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (field.type === "text" && typeof value === "string") {
+    const { minLength, maxLength } = field;
+    if (minLength !== undefined && value.length < minLength) {
+      return `Field "${field.name}" must be at least ${minLength} character${minLength === 1 ? "" : "s"}.`;
+    }
+    if (maxLength !== undefined && value.length > maxLength) {
+      return `Field "${field.name}" must be at most ${maxLength} character${maxLength === 1 ? "" : "s"}.`;
+    }
+    return null;
+  }
+  if (field.type === "number" && typeof value === "number" && Number.isFinite(value)) {
+    const { min: lo, max: hi } = field;
+    if (lo !== undefined && value < lo) {
+      return `Field "${field.name}" must be ≥ ${lo}.`;
+    }
+    if (hi !== undefined && value > hi) {
+      return `Field "${field.name}" must be ≤ ${hi}.`;
+    }
+    return null;
+  }
+  return null;
+}
+
 export const collectionFieldDefinitionSchema = z
   .object({
     id: z.string().uuid(),
@@ -114,8 +157,40 @@ export const collectionFieldDefinitionSchema = z
     required: z.boolean().default(false),
     unique: z.boolean().default(false),
     defaultValue: z.unknown().optional(),
+    minLength: z.number().int().min(0).optional(),
+    maxLength: z.number().int().min(0).optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
   })
   .superRefine((field, ctx) => {
+    if (field.minLength !== undefined && field.maxLength !== undefined && field.minLength > field.maxLength) {
+      ctx.addIssue({
+        code: "custom",
+        message: "minLength cannot exceed maxLength.",
+        path: ["minLength"],
+      });
+    }
+    if (field.min !== undefined && field.max !== undefined && field.min > field.max) {
+      ctx.addIssue({
+        code: "custom",
+        message: "min cannot exceed max.",
+        path: ["min"],
+      });
+    }
+    if (field.type !== "text" && (field.minLength !== undefined || field.maxLength !== undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Length constraints apply only to text fields.",
+        path: ["minLength"],
+      });
+    }
+    if (field.type !== "number" && (field.min !== undefined || field.max !== undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "min/max bounds apply only to number fields.",
+        path: ["min"],
+      });
+    }
     if (field.defaultValue === undefined) {
       return;
     }
@@ -142,6 +217,17 @@ export const collectionFieldDefinitionSchema = z
         message: `defaultValue must match type ${type}.`,
         path: ["defaultValue"],
       });
+      return;
+    }
+    if (defaultValue !== undefined && (type === "text" || type === "number")) {
+      const constraintMsg = validateValueAgainstFieldConstraints(field, defaultValue);
+      if (constraintMsg) {
+        ctx.addIssue({
+          code: "custom",
+          message: constraintMsg,
+          path: ["defaultValue"],
+        });
+      }
     }
   });
 

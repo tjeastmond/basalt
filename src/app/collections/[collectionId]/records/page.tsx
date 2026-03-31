@@ -41,7 +41,10 @@ export default async function CollectionRecordsPage(props: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/collections/${collectionId}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          <Link
+            href={`/collections/${collectionId}/edit`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
             Edit schema
           </Link>
           <Link href="/collections" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>

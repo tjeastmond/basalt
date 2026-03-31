@@ -59,7 +59,10 @@ export default async function EditCollectionRecordPage(props: Props) {
         recordId={recordId}
         initialValues={initialValues}
       />
-      <Link href={`/collections/${collectionId}/records`} className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}>
+      <Link
+        href={`/collections/${collectionId}/records`}
+        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "w-fit")}
+      >
         ← Back to records
       </Link>
     </main>
