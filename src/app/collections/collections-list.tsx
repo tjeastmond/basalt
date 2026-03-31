@@ -31,18 +31,15 @@ export function CollectionsList() {
       {rows.length === 0 ? (
         <p className="text-muted-foreground text-sm">No collections yet.</p>
       ) : (
-        <ul className="divide-y divide-border rounded-md border border-border">
+        <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
           {rows.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-              <div>
-                <p className="font-medium">{c.name}</p>
-                <p className="text-muted-foreground text-xs">{c.slug}</p>
-              </div>
+            <li key={c.id} className="p-0">
               <Link
                 href={`/collections/${c.id}/edit`}
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                className="block cursor-pointer px-4 py-3 transition-colors hover:bg-muted/60 focus-visible:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                Edit
+                <p className="font-medium">{c.name}</p>
+                <p className="text-muted-foreground text-xs">{c.slug}</p>
               </Link>
             </li>
           ))}
