@@ -48,3 +48,14 @@ export function canChangeUserAccessLevel(
 
   return { ok: true };
 }
+
+/**
+ * Whether an actor may update another user's profile fields (name, password).
+ * Access level must be changed only via {@link canChangeUserAccessLevel} on the dedicated mutation.
+ */
+export function canAdminEditUserProfile(actor: AccessSlug): LevelChangeResult {
+  if (actor === "owner" || actor === "admin") {
+    return { ok: true };
+  }
+  return { ok: false, message: "Insufficient permissions." };
+}

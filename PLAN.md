@@ -4,6 +4,10 @@
 
 Build a single-tenant, PocketBase-inspired admin and API for collections and records with Owner/Admin/User roles, schema migrations, CRUD UI, and headless API access. Use Next.js App Router under `src/`, shadcn + `next-themes`, and the `@` -> `src/` alias.
 
+## Working on next
+
+Upcoming auth and user-management work before or alongside collections.
+
 ## Foundation and Tooling
 
 - [x] Scaffold Next.js App Router with TypeScript, Tailwind, and `src/` layout
@@ -27,6 +31,15 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 - [x] User can update own profile
 - [x] Default Owner seeded (`pnpm db:seed`: `basalt@basalt.local` / `basalt`; change for production)
 - [x] Onboarding prompt to create first collection
+
+## Password and user editing
+
+- [x] Profile — change own password: signed-in users can update password from `/settings/profile` (e.g. current password + new password; use Better Auth email/password API and validation).
+- [x] Admin — edit any user and set password: Owners and Admins (`adminProcedure` on the `users` tRPC router) can edit existing users, not only create users and change access level. Include setting a new password for credential accounts (`hashPassword` + `account` row with `providerId: "credential"`, same pattern as user create).
+- [x] Policy consistency: reuse or extend `role-policy` and the same Owner-only rules as `updateAccessLevel` so admins cannot escalate beyond existing rules when editing roles or sensitive fields.
+- [x] Admin edit surface: at minimum name + optional new password; email change only with an explicit rule (uniqueness, verification, Better Auth support).
+- [x] Tests: Vitest coverage or smoke coverage for self password change and admin-set password (can align with Tests and Acceptance later).
+- [ ] Avatar: By default set random avatar using: https://robohash.org
 
 ## Collections and Schema
 

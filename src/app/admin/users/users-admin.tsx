@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/trpc/react";
@@ -25,12 +25,23 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
       await utils.users.list.invalidate();
     },
   });
+  const updateUser = trpc.users.updateUser.useMutation({
+    onSuccess: async () => {
+      await utils.users.list.invalidate();
+      setEditingUserId(null);
+      setEditName("");
+      setEditPassword("");
+    },
+  });
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
   const [newLevel, setNewLevel] = useState<AccessSlug>("user");
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPassword, setEditPassword] = useState("");
 
   const canPickOwnerOnCreate = props.actorSlug === "owner";
 
@@ -128,25 +139,117 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                 <th className="px-3 py-2 font-medium">Name</th>
                 <th className="px-3 py-2 font-medium">Email</th>
                 <th className="px-3 py-2 font-medium">Access</th>
+                <th className="px-3 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.users.map((u) => (
-                <tr key={u.id} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2">{u.name}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{u.email}</td>
-                  <td className="px-3 py-2">
-                    <LevelSelect
-                      userId={u.id}
-                      value={u.accessSlug as AccessSlug}
-                      disabled={updateLevel.isPending}
-                      actorSlug={props.actorSlug}
-                      onChange={(slug) => {
-                        void updateLevel.mutateAsync({ userId: u.id, accessLevelSlug: slug });
-                      }}
-                    />
-                  </td>
-                </tr>
+                <Fragment key={u.id}>
+                  <tr className="border-b border-border">
+                    <td className="px-3 py-2">{u.name}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{u.email}</td>
+                    <td className="px-3 py-2">
+                      <LevelSelect
+                        userId={u.id}
+                        value={u.accessSlug as AccessSlug}
+                        disabled={updateLevel.isPending || updateUser.isPending}
+                        actorSlug={props.actorSlug}
+                        onChange={(slug) => {
+                          void updateLevel.mutateAsync({ userId: u.id, accessLevelSlug: slug });
+                        }}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      {editingUserId === u.id ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2"
+                          onClick={() => {
+                            setEditingUserId(null);
+                            setEditName("");
+                            setEditPassword("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2"
+                          disabled={updateUser.isPending}
+                          onClick={() => {
+                            setEditingUserId(u.id);
+                            setEditName(u.name);
+                            setEditPassword("");
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                  {editingUserId === u.id ? (
+                    <tr className="border-b border-border bg-muted/20 last:border-0">
+                      <td colSpan={4} className="px-3 py-4">
+                        <form
+                          className="flex max-w-lg flex-col gap-3"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const trimmedPw = editPassword.trim();
+                            if (trimmedPw.length > 0 && trimmedPw.length < 8) {
+                              return;
+                            }
+                            void updateUser.mutateAsync({
+                              userId: u.id,
+                              name: editName.trim(),
+                              ...(trimmedPw.length >= 8 ? { password: trimmedPw } : {}),
+                            });
+                          }}
+                        >
+                          <p className="text-muted-foreground text-xs">
+                            Update name and optionally set a new password (min 8 characters).
+                          </p>
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span>Name</span>
+                            <input
+                              required
+                              value={editName}
+                              onChange={(ev) => setEditName(ev.target.value)}
+                              className="border-input rounded-md border px-3 py-2 text-sm"
+                              maxLength={200}
+                            />
+                          </label>
+                          <label className="flex flex-col gap-1 text-sm">
+                            <span>New password</span>
+                            <input
+                              type="password"
+                              minLength={8}
+                              value={editPassword}
+                              onChange={(ev) => setEditPassword(ev.target.value)}
+                              placeholder="Leave blank to keep current"
+                              className="border-input rounded-md border px-3 py-2 text-sm"
+                            />
+                          </label>
+                          {editPassword.trim().length > 0 && editPassword.trim().length < 8 ? (
+                            <p className="text-destructive text-xs">Password must be at least 8 characters.</p>
+                          ) : null}
+                          {updateUser.error ? (
+                            <p className="text-destructive text-sm">{updateUser.error.message}</p>
+                          ) : null}
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="submit" size="sm" disabled={updateUser.isPending}>
+                              {updateUser.isPending ? "Saving…" : "Save changes"}
+                            </Button>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
               ))}
             </tbody>
           </table>

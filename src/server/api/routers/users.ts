@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import { hashPassword } from "better-auth/crypto";
 import { TRPCError } from "@trpc/server";
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db, accessLevels, account, user } from "@/db";
 import type { AccessSlug } from "@/lib/access-level";
-import { canChangeUserAccessLevel, canCreateUserWithLevel } from "@/lib/role-policy";
+import { canAdminEditUserProfile, canChangeUserAccessLevel, canCreateUserWithLevel } from "@/lib/role-policy";
 import { adminProcedure, router } from "@/server/api/trpc";
 
 const accessSlugSchema = z.enum(["owner", "admin", "user"]);
@@ -107,6 +107,52 @@ export const usersRouter = router({
       });
 
       return { id: userId };
+    }),
+
+  updateUser: adminProcedure
+    .input(
+      z.object({
+        userId: z.string().min(1),
+        name: z.string().min(1).max(200),
+        password: z.string().min(8).max(128).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const gate = canAdminEditUserProfile(ctx.member.accessSlug);
+      if (!gate.ok) {
+        throw new TRPCError({ code: "FORBIDDEN", message: gate.message });
+      }
+
+      const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, input.userId)).limit(1);
+
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      }
+
+      await db.update(user).set({ name: input.name.trim() }).where(eq(user.id, input.userId));
+
+      if (input.password) {
+        const passwordHash = await hashPassword(input.password);
+        const [cred] = await db
+          .select({ id: account.id })
+          .from(account)
+          .where(and(eq(account.userId, input.userId), eq(account.providerId, "credential")))
+          .limit(1);
+
+        if (cred) {
+          await db.update(account).set({ password: passwordHash }).where(eq(account.id, cred.id));
+        } else {
+          await db.insert(account).values({
+            id: randomUUID(),
+            accountId: input.userId,
+            providerId: "credential",
+            userId: input.userId,
+            password: passwordHash,
+          });
+        }
+      }
+
+      return { ok: true as const };
     }),
 
   updateAccessLevel: adminProcedure

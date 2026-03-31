@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { canChangeUserAccessLevel, canCreateUserWithLevel } from "@/lib/role-policy";
+import { canAdminEditUserProfile, canChangeUserAccessLevel, canCreateUserWithLevel } from "@/lib/role-policy";
 
 describe("canCreateUserWithLevel", () => {
   it("allows owner to create any level", () => {
@@ -44,5 +44,16 @@ describe("canChangeUserAccessLevel", () => {
   it("allows owner to promote user to owner", () => {
     const r = canChangeUserAccessLevel("owner", "user", "owner", 1);
     expect(r.ok).toBe(true);
+  });
+});
+
+describe("canAdminEditUserProfile", () => {
+  it("allows owner and admin", () => {
+    expect(canAdminEditUserProfile("owner").ok).toBe(true);
+    expect(canAdminEditUserProfile("admin").ok).toBe(true);
+  });
+
+  it("denies regular user", () => {
+    expect(canAdminEditUserProfile("user").ok).toBe(false);
   });
 });
