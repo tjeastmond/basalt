@@ -1,4 +1,4 @@
-# Portabase MVP Plan
+# Basalt MVP Plan
 
 ## Summary
 
@@ -6,15 +6,15 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Foundation and Tooling
 
-- [ ] Scaffold Next.js App Router with TypeScript, Tailwind, and `src/` layout
-- [ ] Ensure App Router only (no `pages/` directory)
-- [ ] Configure `@/*` alias to `src/*` in `tsconfig.json`
-- [ ] Initialize shadcn and `next-themes` with class-based theme support
-- [ ] Add theme provider and dark mode toggle
-- [ ] Set up linting and formatting (ESLint, Prettier)
-- [ ] Add Vitest config and base test harness
-- [ ] Setup Docker compose file for local Postgres
-- [ ] Create a `.env.local` file with the local Postgres connection string
+- [x] Scaffold Next.js App Router with TypeScript, Tailwind, and `src/` layout
+- [x] Ensure App Router only (no `pages/` directory)
+- [x] Configure `@/*` alias to `src/*` in `tsconfig.json`
+- [x] Initialize shadcn and `next-themes` with class-based theme support
+- [x] Add theme provider and dark mode toggle
+- [x] Set up linting and formatting (ESLint, Prettier)
+- [x] Add Vitest config and base test harness
+- [x] Setup Docker compose file for local Postgres
+- [x] Create a `.env.local` file with the local Postgres connection string
 
 ## Auth, Roles, and Onboarding
 
