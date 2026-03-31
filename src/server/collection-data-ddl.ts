@@ -9,6 +9,20 @@ import {
 
 export type SqlExecutor = { execute: (query: SQL) => Promise<unknown> };
 
+/** Drizzle `execute()` on raw SQL returns node-pg `{ rows }`, not a row array. */
+function rowsFromPgExecute<T extends Record<string, unknown>>(result: unknown): T[] {
+  if (result !== null && typeof result === "object" && "rows" in result) {
+    const { rows } = result as { rows: unknown };
+    if (Array.isArray(rows)) {
+      return rows as T[];
+    }
+  }
+  if (Array.isArray(result)) {
+    return result as T[];
+  }
+  return [];
+}
+
 function formatSqlStringLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
@@ -166,7 +180,7 @@ function typeChangeUsingExpression(from: CollectionFieldType, to: CollectionFiel
 export async function collectionDataTableExists(executor: SqlExecutor, tableSuffix: string): Promise<boolean> {
   const rel = collectionDataTableName(tableSuffix);
   const result = await executor.execute(sql`SELECT to_regclass(${rel}::text) IS NOT NULL AS ok`);
-  const row = (result as { ok: boolean }[])[0];
+  const row = rowsFromPgExecute<{ ok: boolean }>(result)[0];
   return Boolean(row?.ok);
 }
 
