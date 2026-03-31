@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@/components/theme-provider";
 import type * as React from "react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
