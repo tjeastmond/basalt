@@ -3,6 +3,12 @@ import type { NextResponse } from "next/server";
 
 import { v1JsonError, type V1ErrorBody } from "@/server/rest/v1-json";
 
+const INTERNAL_MSG = "An unexpected error occurred.";
+
+function logV1InternalError(e: unknown): void {
+  console.error("[api/v1] internal error", e);
+}
+
 export function mapTrpcOrUnknownToV1Response(e: unknown): NextResponse<V1ErrorBody> {
   if (e instanceof TRPCError) {
     switch (e.code) {
@@ -17,9 +23,10 @@ export function mapTrpcOrUnknownToV1Response(e: unknown): NextResponse<V1ErrorBo
       case "UNAUTHORIZED":
         return v1JsonError(401, "UNAUTHORIZED", e.message);
       default:
-        return v1JsonError(500, "INTERNAL_ERROR", e.message);
+        logV1InternalError(e);
+        return v1JsonError(500, "INTERNAL_ERROR", INTERNAL_MSG);
     }
   }
-  const message = e instanceof Error ? e.message : "Unexpected error.";
-  return v1JsonError(500, "INTERNAL_ERROR", message);
+  logV1InternalError(e);
+  return v1JsonError(500, "INTERNAL_ERROR", INTERNAL_MSG);
 }

@@ -248,14 +248,12 @@ export function CollectionEditor(props: CollectionEditorProps) {
         return;
       }
       await utils.collections.list.invalidate();
-      await router.refresh();
       router.push("/collections");
       router.refresh();
       return;
     }
 
     await utils.collections.list.invalidate();
-    await router.refresh();
     router.push("/collections");
     router.refresh();
   }
@@ -377,9 +375,7 @@ export function CollectionEditor(props: CollectionEditorProps) {
                         <input
                           type="checkbox"
                           checked={Boolean(f.multiline)}
-                          onChange={(e) =>
-                            updateField(f.id, { multiline: e.target.checked ? true : undefined })
-                          }
+                          onChange={(e) => updateField(f.id, { multiline: e.target.checked ? true : undefined })}
                           disabled={busy}
                         />
                         Multi-line (large text)

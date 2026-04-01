@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildAddColumnStatementsForExistingTable,
-  collectionDataTableExists,
-} from "@/server/collection-data-ddl";
+import { buildAddColumnStatementsForExistingTable, collectionDataTableExists } from "@/server/collection-data-ddl";
 
 const sampleField = (patch: Record<string, unknown>) =>
   ({

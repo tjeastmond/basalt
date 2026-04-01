@@ -130,6 +130,7 @@ export function buildAddColumnStatementsForExistingTable(
   field: CollectionFieldDefinition,
   rowCount: number,
 ): string[] {
+  assertSafeSqlIdentifier(table);
   assertSafeSqlIdentifier(field.name);
   const pgType = pgTypeForFieldType(field.type);
   const col = field.name;

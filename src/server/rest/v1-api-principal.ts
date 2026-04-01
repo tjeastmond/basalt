@@ -47,7 +47,7 @@ export async function resolveV1ApiPrincipal(request: Request): Promise<V1ApiPrin
     return null;
   }
 
-  if (!verifyApiKeySecret(token, row.keySalt, row.keyHash)) {
+  if (!(await verifyApiKeySecret(token, row.keySalt, row.keyHash))) {
     return null;
   }
 
