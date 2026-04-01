@@ -1,19 +1,17 @@
 import type { Page } from "@playwright/test";
 
-/** Accept the next `window.confirm` (e.g. delete collection / record). */
+const CONFIRM_TIMEOUT_MS = 10_000;
+
+/**
+ * Start waiting for the next `window.confirm`. Call before the action that opens it, then
+ * `await` the returned promise after the click: `const done = acceptNextConfirm(page); await click(); await done;`
+ */
 export function acceptNextConfirm(page: Page): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error("Timed out waiting for confirm dialog"));
-    }, 10_000);
-    page.once("dialog", (dialog) => {
-      clearTimeout(timer);
-      if (dialog.type() !== "confirm") {
-        void dialog.dismiss();
-        reject(new Error(`Expected confirm, got ${dialog.type()}`));
-        return;
-      }
-      void dialog.accept().then(() => resolve());
-    });
+  return page.waitForEvent("dialog", { timeout: CONFIRM_TIMEOUT_MS }).then(async (dialog) => {
+    if (dialog.type() !== "confirm") {
+      await dialog.dismiss();
+      throw new Error(`Expected confirm, got ${dialog.type()}`);
+    }
+    await dialog.accept();
   });
 }

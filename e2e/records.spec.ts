@@ -37,8 +37,9 @@ test.describe("collection records", () => {
     await expect(page.locator("tbody")).toContainText("hello updated");
 
     await page.locator('tbody a[href*="/records/"]:not([href$="/new"])').first().click();
-    void acceptNextConfirm(page);
+    const confirmClosed = acceptNextConfirm(page);
     await page.getByRole("button", { name: "Delete record" }).click();
+    await confirmClosed;
     await expect(page.getByText("No records yet.")).toBeVisible();
   });
 

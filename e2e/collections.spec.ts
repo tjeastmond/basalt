@@ -31,8 +31,9 @@ test.describe("collections", () => {
     await expect(page.getByRole("link", { name: new RegExp(edited) })).toBeVisible();
 
     await page.getByRole("link", { name: new RegExp(edited) }).click();
-    void acceptNextConfirm(page);
+    const confirmClosed = acceptNextConfirm(page);
     await page.getByRole("button", { name: "Delete collection" }).click();
+    await confirmClosed;
     await expect(page).toHaveURL("/collections");
     await expect(page.getByRole("link", { name: new RegExp(edited) })).toHaveCount(0);
   });

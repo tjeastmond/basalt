@@ -40,9 +40,10 @@ async function globalSetup() {
   const userPlain = await insertKey(USER_LABEL, userLevel.id);
 
   const e2eDir = path.resolve(process.cwd(), "e2e");
-  fs.mkdirSync(e2eDir, { recursive: true });
-  fs.writeFileSync(path.join(e2eDir, ".smoke-api-key"), ownerPlain, "utf8");
-  fs.writeFileSync(path.join(e2eDir, ".smoke-api-key-user"), userPlain, "utf8");
+  fs.mkdirSync(e2eDir, { recursive: true, mode: 0o700 });
+  const keyOpts = { encoding: "utf8" as const, mode: 0o600, flag: "w" as const };
+  fs.writeFileSync(path.join(e2eDir, ".smoke-api-key"), ownerPlain, keyOpts);
+  fs.writeFileSync(path.join(e2eDir, ".smoke-api-key-user"), userPlain, keyOpts);
 
   await getPool().end();
 }
