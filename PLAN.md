@@ -212,10 +212,10 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 ## Tests and Acceptance
 
-- [ ] Smoke test: auth flow (login, logout)
-- [ ] Smoke test: create/edit/delete collection
-- [ ] Smoke test: create/edit/delete **record rows in a collection’s physical table**
-- [ ] Smoke test: API key access for read and write (manual or Playwright against `/api/v1`)
+- [x] Smoke test: auth flow (login, logout)
+- [x] Smoke test: create/edit/delete collection
+- [x] Smoke test: create/edit/delete **record rows in a collection’s physical table**
+- [x] Smoke test: API key access for read and write (manual or Playwright against `/api/v1`)
 - [x] Build passes with `pnpm build`
 
 ## Later (After first initial MVP is built)

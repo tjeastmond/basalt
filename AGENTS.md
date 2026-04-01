@@ -6,21 +6,24 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 
 ## PNPM Scripts
 
-| Script         | Purpose                                 |
-| -------------- | --------------------------------------- |
-| `dev`          | Next.js dev server                      |
-| `build`        | Production build                        |
-| `start`        | Run production server (after `build`)   |
-| `lint`         | ESLint on the repo                      |
-| `typecheck`    | TypeScript (`tsc --noEmit`)             |
-| `format`       | Prettier write                          |
-| `format:check` | Prettier check (CI-friendly)            |
-| `test`         | Vitest watch mode                       |
-| `test:run`     | Vitest single run (CI-friendly)         |
-| `db:generate`  | Drizzle: generate SQL migrations        |
-| `db:migrate`   | Drizzle: apply migrations               |
-| `db:push`      | Drizzle: push schema (dev shortcut)     |
-| `db:seed`      | Seed access levels + default Owner user |
+| Script             | Purpose                                              |
+| ------------------ | ---------------------------------------------------- |
+| `dev`              | Next.js dev server                                   |
+| `build`            | Production build                                     |
+| `start`            | Run production server (after `build`)                |
+| `lint`             | ESLint on the repo                                   |
+| `typecheck`        | TypeScript (`tsc --noEmit`)                          |
+| `format`           | Prettier write                                       |
+| `format:check`     | Prettier check (CI-friendly)                         |
+| `test`             | Vitest watch mode                                    |
+| `test:run`         | Vitest single run (CI-friendly)                      |
+| `test:e2e`         | Playwright smoke tests (needs DB + `SMOKE_PASSWORD`) |
+| `test:e2e:ui`      | Playwright UI mode                                   |
+| `test:e2e:install` | Install Playwright Chromium + headless shell         |
+| `db:generate`      | Drizzle: generate SQL migrations                     |
+| `db:migrate`       | Drizzle: apply migrations                            |
+| `db:push`          | Drizzle: push schema (dev shortcut)                  |
+| `db:seed`          | Seed access levels + default Owner user              |
 
 ## Tech stack
 
@@ -32,7 +35,7 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 - **Data:** Postgres (Docker locally), [Drizzle ORM](https://orm.drizzle.team/), [Better Auth](https://www.better-auth.com/) (email/password)
 - **API (app):** [tRPC](https://trpc.io/) v11 (`@trpc/server`, `@trpc/client`, `@trpc/react-query`), [TanStack Query](https://tanstack.com/query) (`@tanstack/react-query`), [superjson](https://github.com/blitz-js/superjson) for dates and other non-JSON types on the wire, and [Zod](https://zod.dev/) for procedure inputs.
 - **tRPC layout:** Route handler [`src/app/api/trpc/[trpc]/route.ts`](src/app/api/trpc/[trpc]/route.ts), merged routers under [`src/server/api/`](src/server/api/), client [`TrpcProvider` in `src/trpc/react.tsx`](src/trpc/react.tsx) inside root [`layout.tsx`](src/app/layout.tsx). Use `protectedProcedure` and `adminProcedure` from [`src/server/api/trpc.ts`](src/server/api/trpc.ts). Resolve the current user’s access level from Postgres via [`getMemberFromHeaders`](src/lib/member.ts) in tRPC context—do not treat the client as authoritative for roles.
-- **Testing:** Vitest (with `@vitejs/plugin-react`, `jsdom`)
+- **Testing:** Vitest (with `@vitejs/plugin-react`, `jsdom`); Playwright smoke tests under [`e2e/`](e2e/) (`pnpm test:e2e`, see [`.env.example`](.env.example) for `SMOKE_PASSWORD`)
 - **Quality:** ESLint (`eslint-config-next`, `eslint-config-prettier`), Prettier
 
 Pinned versions live in `package.json`.
