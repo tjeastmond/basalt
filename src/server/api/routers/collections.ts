@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { db, collections } from "@/db";
@@ -127,6 +128,11 @@ export const collectionsRouter = router({
         }
         return updated;
       });
+
+      revalidatePath(`/collections/${input.id}/edit`);
+      revalidatePath(`/collections/${input.id}/records`);
+      revalidatePath(`/collections/${input.id}/records/new`);
+      revalidatePath("/collections");
 
       return { status: "ok" as const, collection: row };
     } catch (e) {

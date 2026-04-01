@@ -202,6 +202,9 @@ export function CollectionEditor(props: CollectionEditorProps) {
       if (f.max !== undefined) {
         def.max = f.max;
       }
+      if (f.multiline) {
+        def.multiline = true;
+      }
       if (parsed.value !== undefined) {
         def.defaultValue = parsed.value;
       }
@@ -245,12 +248,14 @@ export function CollectionEditor(props: CollectionEditorProps) {
         return;
       }
       await utils.collections.list.invalidate();
+      await router.refresh();
       router.push("/collections");
       router.refresh();
       return;
     }
 
     await utils.collections.list.invalidate();
+    await router.refresh();
     router.push("/collections");
     router.refresh();
   }
@@ -335,6 +340,7 @@ export function CollectionEditor(props: CollectionEditorProps) {
                           maxLength: undefined,
                           min: undefined,
                           max: undefined,
+                          multiline: undefined,
                         });
                       }}
                       className="border-input rounded-md border px-3 py-2 text-sm"
@@ -367,6 +373,17 @@ export function CollectionEditor(props: CollectionEditorProps) {
                   </label>
                   {f.type === "text" ? (
                     <div className="col-span-full grid gap-3 sm:grid-cols-2">
+                      <label className="col-span-full flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(f.multiline)}
+                          onChange={(e) =>
+                            updateField(f.id, { multiline: e.target.checked ? true : undefined })
+                          }
+                          disabled={busy}
+                        />
+                        Multi-line (large text)
+                      </label>
                       <label className="flex flex-col gap-1 text-sm">
                         <span>Min length (optional)</span>
                         <input

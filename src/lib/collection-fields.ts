@@ -24,7 +24,17 @@ export const collectionFieldLooseSchema = z.object({
   maxLength: z.number().int().min(0).optional(),
   min: z.number().optional(),
   max: z.number().optional(),
-});
+  multiline: z.boolean().optional(),
+})
+  .superRefine((field, ctx) => {
+    if (field.multiline === true && field.type !== "text") {
+      ctx.addIssue({
+        code: "custom",
+        message: "multiline applies only to text fields.",
+        path: ["multiline"],
+      });
+    }
+  });
 
 export const collectionFieldsLooseArraySchema = z.array(collectionFieldLooseSchema);
 
@@ -161,8 +171,16 @@ export const collectionFieldDefinitionSchema = z
     maxLength: z.number().int().min(0).optional(),
     min: z.number().optional(),
     max: z.number().optional(),
+    multiline: z.boolean().optional(),
   })
   .superRefine((field, ctx) => {
+    if (field.multiline === true && field.type !== "text") {
+      ctx.addIssue({
+        code: "custom",
+        message: "multiline applies only to text fields.",
+        path: ["multiline"],
+      });
+    }
     if (field.minLength !== undefined && field.maxLength !== undefined && field.minLength > field.maxLength) {
       ctx.addIssue({
         code: "custom",

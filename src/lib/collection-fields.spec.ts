@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  collectionFieldDefinitionSchema,
   collectionFieldsArraySchema,
   computeSchemaChangeFlags,
   dedupeMachineNames,
@@ -153,6 +154,22 @@ describe("finalizeFieldDefinitions", () => {
     expect(out[0]!.minLength).toBe(2);
     expect(out[0]!.maxLength).toBe(10);
   });
+
+  it("preserves multiline on text fields", () => {
+    const id = "22222222-bbbb-4222-b222-eeeeeeeeeeee";
+    const out = finalizeFieldDefinitions([
+      {
+        id,
+        name: "Body",
+        type: "text",
+        required: true,
+        unique: false,
+        multiline: true,
+      },
+    ]);
+    expect(out[0]!.name).toBe("body");
+    expect(out[0]!.multiline).toBe(true);
+  });
 });
 
 describe("validateValueAgainstFieldConstraints", () => {
@@ -186,5 +203,38 @@ describe("collectionFieldsArraySchema constraints", () => {
       { id, name: "x", type: "number", required: false, unique: false, min: 5, max: 1 },
     ]);
     expect(result.success).toBe(false);
+  });
+
+  it("rejects multiline on non-text fields", () => {
+    const id = "ffffffff-bbbb-4fff-f666-eeeeeeeeeeee";
+    const single = collectionFieldDefinitionSchema.safeParse({
+      id,
+      name: "n",
+      type: "number",
+      required: false,
+      unique: false,
+      multiline: true,
+    });
+    expect(single.success).toBe(false);
+    const array = collectionFieldsArraySchema.safeParse([
+      { id, name: "n", type: "number", required: false, unique: false, multiline: true },
+    ]);
+    expect(array.success).toBe(false);
+  });
+
+  it("accepts multiline on text fields", () => {
+    const id = "11111111-bbbb-4111-a111-eeeeeeeeeeee";
+    const result = collectionFieldDefinitionSchema.safeParse({
+      id,
+      name: "body",
+      type: "text",
+      required: true,
+      unique: false,
+      multiline: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.multiline).toBe(true);
+    }
   });
 });
