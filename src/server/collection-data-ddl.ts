@@ -326,13 +326,14 @@ export async function syncCollectionDataTableSchema(
 ): Promise<void> {
   const table = collectionDataTableName(tableSuffix);
   await executor.execute(
-    sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`),
+    sql.raw(
+      `ALTER TABLE ${table} ` +
+        `ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS created_by text NULL, ` +
+        `ADD COLUMN IF NOT EXISTS updated_by text NULL`,
+    ),
   );
-  await executor.execute(
-    sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`),
-  );
-  await executor.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_by text NULL`));
-  await executor.execute(sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_by text NULL`));
   const prevById = new Map(previous.map((f) => [f.id, f]));
   const nextIds = new Set(next.map((f) => f.id));
   const newFieldDefs = next.filter((n) => !prevById.has(n.id));

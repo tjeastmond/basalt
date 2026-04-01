@@ -114,13 +114,38 @@ function assertKnownFieldName(fields: CollectionFieldDefinition[], name: string)
   return field;
 }
 
+const ensuredPhysicalAuditColumnsForSuffix = new Set<string>();
+const ensuringPhysicalAuditColumnsForSuffix = new Map<string, Promise<void>>();
+
 async function ensurePhysicalAuditColumns(tableSuffix: string): Promise<void> {
-  const pool = getPool();
-  const table = collectionDataTableName(tableSuffix);
-  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`);
-  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`);
-  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_by text NULL`);
-  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_by text NULL`);
+  if (ensuredPhysicalAuditColumnsForSuffix.has(tableSuffix)) {
+    return;
+  }
+  const inFlight = ensuringPhysicalAuditColumnsForSuffix.get(tableSuffix);
+  if (inFlight) {
+    await inFlight;
+    return;
+  }
+
+  const ensurePromise = (async () => {
+    const pool = getPool();
+    const table = collectionDataTableName(tableSuffix);
+    await pool.query(
+      `ALTER TABLE ${table} ` +
+        `ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS created_by text NULL, ` +
+        `ADD COLUMN IF NOT EXISTS updated_by text NULL`,
+    );
+    ensuredPhysicalAuditColumnsForSuffix.add(tableSuffix);
+  })();
+
+  ensuringPhysicalAuditColumnsForSuffix.set(tableSuffix, ensurePromise);
+  try {
+    await ensurePromise;
+  } finally {
+    ensuringPhysicalAuditColumnsForSuffix.delete(tableSuffix);
+  }
 }
 
 function coerceFieldValue(field: CollectionFieldDefinition, raw: unknown, allowNull: boolean): unknown {
