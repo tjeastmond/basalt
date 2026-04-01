@@ -2,12 +2,17 @@ import { randomUUID } from "node:crypto";
 
 import { hashPassword } from "better-auth/crypto";
 import { TRPCError } from "@trpc/server";
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 
 import { db, accessLevels, account, user } from "@/db";
 import type { AccessSlug } from "@/lib/access-level";
-import { canAdminEditUserProfile, canChangeUserAccessLevel, canCreateUserWithLevel } from "@/lib/role-policy";
+import {
+  canAdminEditUserProfile,
+  canChangeUserAccessLevel,
+  canChangeUserEmail,
+  canCreateUserWithLevel,
+} from "@/lib/role-policy";
 import { adminProcedure, router } from "@/server/api/trpc";
 
 const accessSlugSchema = z.enum(["owner", "admin", "user"]);
@@ -114,6 +119,7 @@ export const usersRouter = router({
       z.object({
         userId: z.string().min(1),
         name: z.string().min(1).max(200),
+        email: z.string().email().max(320).optional(),
         password: z.string().min(8).max(128).optional(),
       }),
     )
@@ -123,13 +129,48 @@ export const usersRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: gate.message });
       }
 
-      const [target] = await db.select({ id: user.id }).from(user).where(eq(user.id, input.userId)).limit(1);
+      const [target] = await db
+        .select({
+          id: user.id,
+          email: user.email,
+          slug: accessLevels.slug,
+        })
+        .from(user)
+        .innerJoin(accessLevels, eq(user.accessLevelId, accessLevels.id))
+        .where(eq(user.id, input.userId))
+        .limit(1);
 
       if (!target) {
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
       }
 
-      await db.update(user).set({ name: input.name.trim() }).where(eq(user.id, input.userId));
+      const targetAccessSlug = assertAccessSlug(target.slug);
+      const actor = ctx.member.accessSlug;
+
+      const nameTrimmed = input.name.trim();
+      const setPayload: { name: string; email?: string; emailVerified?: boolean } = { name: nameTrimmed };
+
+      if (input.email !== undefined) {
+        const emailTrimmed = input.email.trim();
+        if (emailTrimmed !== target.email.trim()) {
+          const emailGate = canChangeUserEmail(actor, targetAccessSlug);
+          if (!emailGate.ok) {
+            throw new TRPCError({ code: "FORBIDDEN", message: emailGate.message });
+          }
+          const [other] = await db
+            .select({ id: user.id })
+            .from(user)
+            .where(and(eq(user.email, emailTrimmed), ne(user.id, input.userId)))
+            .limit(1);
+          if (other) {
+            throw new TRPCError({ code: "CONFLICT", message: "A user with this email already exists." });
+          }
+          setPayload.email = emailTrimmed;
+          setPayload.emailVerified = true;
+        }
+      }
+
+      await db.update(user).set(setPayload).where(eq(user.id, input.userId));
 
       if (input.password) {
         const passwordHash = await hashPassword(input.password);

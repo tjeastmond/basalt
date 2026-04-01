@@ -50,6 +50,20 @@ export function canChangeUserAccessLevel(
 }
 
 /**
+ * Whether an actor may change a user's login email.
+ * Admins may not change an Owner's email; only another Owner may.
+ */
+export function canChangeUserEmail(actor: AccessSlug, targetAccessSlug: AccessSlug): LevelChangeResult {
+  if (actor !== "owner" && actor !== "admin") {
+    return { ok: false, message: "Insufficient permissions." };
+  }
+  if (targetAccessSlug === "owner" && actor !== "owner") {
+    return { ok: false, message: "Only an Owner can change an Owner's email." };
+  }
+  return { ok: true };
+}
+
+/**
  * Whether an actor may update another user's profile fields (name, password).
  * Access level must be changed only via {@link canChangeUserAccessLevel} on the dedicated mutation.
  */

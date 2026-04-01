@@ -30,6 +30,7 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
       await utils.users.list.invalidate();
       setEditingUserId(null);
       setEditName("");
+      setEditEmail("");
       setEditPassword("");
     },
   });
@@ -41,6 +42,7 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
   const [newLevel, setNewLevel] = useState<AccessSlug>("user");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [editPassword, setEditPassword] = useState("");
 
   const canPickOwnerOnCreate = props.actorSlug === "owner";
@@ -143,7 +145,10 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
               </tr>
             </thead>
             <tbody>
-              {data.users.map((u) => (
+              {data.users.map((u) => {
+                const ownerTargetNoEmailEdit =
+                  props.actorSlug !== "owner" && u.accessSlug === "owner";
+                return (
                 <Fragment key={u.id}>
                   <tr className="border-b border-border">
                     <td className="px-3 py-2">{u.name}</td>
@@ -169,6 +174,7 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                           onClick={() => {
                             setEditingUserId(null);
                             setEditName("");
+                            setEditEmail("");
                             setEditPassword("");
                           }}
                         >
@@ -184,6 +190,9 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                           onClick={() => {
                             setEditingUserId(u.id);
                             setEditName(u.name);
+                            if (!ownerTargetNoEmailEdit) {
+                              setEditEmail(u.email);
+                            }
                             setEditPassword("");
                           }}
                         >
@@ -206,12 +215,17 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                             void updateUser.mutateAsync({
                               userId: u.id,
                               name: editName.trim(),
+                              ...(ownerTargetNoEmailEdit
+                                ? {}
+                                : { email: editEmail.trim() }),
                               ...(trimmedPw.length >= 8 ? { password: trimmedPw } : {}),
                             });
                           }}
                         >
                           <p className="text-muted-foreground text-xs">
-                            Update name and optionally set a new password (min 8 characters).
+                            {ownerTargetNoEmailEdit
+                              ? "Update name and optionally set a new password (min 8 characters). Email can only be changed by an Owner."
+                              : "Update name, email, and optionally set a new password (min 8 characters)."}
                           </p>
                           <label className="flex flex-col gap-1 text-sm">
                             <span>Name</span>
@@ -223,6 +237,19 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                               maxLength={200}
                             />
                           </label>
+                          {!ownerTargetNoEmailEdit ? (
+                            <label className="flex flex-col gap-1 text-sm">
+                              <span>Email</span>
+                              <input
+                                required
+                                type="email"
+                                value={editEmail}
+                                onChange={(ev) => setEditEmail(ev.target.value)}
+                                className="border-input rounded-md border px-3 py-2 text-sm"
+                                maxLength={320}
+                              />
+                            </label>
+                          ) : null}
                           <label className="flex flex-col gap-1 text-sm">
                             <span>New password</span>
                             <input
@@ -250,7 +277,8 @@ export function UsersAdmin(props: { actorSlug: AccessSlug }) {
                     </tr>
                   ) : null}
                 </Fragment>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
