@@ -170,6 +170,7 @@ export function RecordsList(props: Props) {
   const sortOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [
       { value: "created_at", label: "Created" },
+      { value: "updated_at", label: "Updated" },
       { value: "id", label: "id" },
     ];
     for (const f of props.fields) {

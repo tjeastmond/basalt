@@ -214,6 +214,9 @@ function buildCreateTableSql(tableSuffix: string, fields: CollectionFieldDefinit
   const lines: string[] = [
     "id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL",
     "created_at timestamptz NOT NULL DEFAULT now()",
+    "updated_at timestamptz NOT NULL DEFAULT now()",
+    "created_by text NULL",
+    "updated_by text NULL",
   ];
   for (const f of fields) {
     lines.push(buildColumnDefinitionBase(f));
@@ -323,7 +326,13 @@ export async function syncCollectionDataTableSchema(
 ): Promise<void> {
   const table = collectionDataTableName(tableSuffix);
   await executor.execute(
-    sql.raw(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`),
+    sql.raw(
+      `ALTER TABLE ${table} ` +
+        `ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(), ` +
+        `ADD COLUMN IF NOT EXISTS created_by text NULL, ` +
+        `ADD COLUMN IF NOT EXISTS updated_by text NULL`,
+    ),
   );
   const prevById = new Map(previous.map((f) => [f.id, f]));
   const nextIds = new Set(next.map((f) => f.id));
