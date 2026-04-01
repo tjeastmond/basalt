@@ -195,8 +195,8 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 
 ## Example Content and Seeds
 
-- [ ] Create default `posts` collection (metadata row + physical table **`col_posts`** via DDL)
-- [ ] Seed local dev data into **`col_posts`**
+- [x] Create default `posts` collection (metadata row + physical table **`col_posts`** via DDL)
+- [x] Seed local dev data into **`col_posts`**
 
 ## UI and UX
 

@@ -17,7 +17,8 @@ const OWNER_PASSWORD = "basalt";
 const OWNER_NAME = "Basalt";
 
 async function main() {
-  const { db, getReadonlyDb, accessLevels, user, account } = await import("../src/db/index");
+  const [{ db, getReadonlyDb, accessLevels, user, account }, { ensurePostsCollectionAndSampleData }] =
+    await Promise.all([import("../src/db/index"), import("../src/server/seed-posts-collection")]);
   const readDb = getReadonlyDb();
 
   await db
@@ -34,6 +35,8 @@ async function main() {
   if (!ownerLevel) {
     throw new Error("Expected access level 'owner' after seed");
   }
+
+  await ensurePostsCollectionAndSampleData();
 
   const [existingUser] = await readDb.select().from(user).where(eq(user.email, OWNER_EMAIL)).limit(1);
 
