@@ -6,7 +6,7 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Working on next
 
-**Audit trail** columns on physical data tables (`created_at`, etc.) and/or **API access** (REST + keys); **field validation rules** (min/max length, number ranges) and richer record UX (sort by `created_at`, optional slide-in panels).
+**Audit trail** beyond `created_at` on physical data tables (`updated_at`, `created_by`, `updated_by`); richer **record UX** (optional slide-in panels vs full page); **import/export**; smoke/acceptance tests for auth, collections, records, and `/api/v1`.
 
 ## Foundation and Tooling
 
@@ -53,7 +53,7 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 - [x] **Physical table per collection**: on create and on schema change, run DDL (`CREATE TABLE`, `ALTER TABLE`, renames / drops per confirmation rules) so row data lives in real columns—not a generic jsonb payload or in-memory-only structure. Implemented in [`src/server/collection-data-ddl.ts`](src/server/collection-data-ddl.ts), wired from [`collections` tRPC router](src/server/api/routers/collections.ts).
 - [x] **Drizzle checked-in migrations** only for platform/base tables (`users`, auth, `collections` metadata registry, etc.); **per-collection data tables** are not separate `drizzle-kit generate` artifacts—they are applied by the app with controlled SQL (no checked-in migration file per user collection).
 - [x] **Physical table naming:** `col_<suffix>` where **`<suffix>` is user-chosen at create time** (same validation as slug: lowercase, digits, underscores) and **stored immutably** on the collection row as **`table_suffix`**. **`slug`** may change later for URLs and labels; **do not** `RENAME TABLE`—the heap name stays `col_<original_suffix>`. **`collections.id`** remains the metadata/API primary key and is **not** part of the table name.
-- [x] **Column type mapping** (MVP): text → `text`, number → `double precision`, boolean → `boolean`, date → `timestamptz`, json → `jsonb`; row PK `id uuid`. **Audit columns** (`created_at`, `updated_at`, `created_by`, `updated_by`) still planned under Audit Trail.
+- [x] **Column type mapping** (MVP): text → `text`, number → `double precision`, boolean → `boolean`, date → `timestamptz`, json → `jsonb`; row PK `id uuid`. **`created_at`** on each `col_*` table is implemented (see Audit Trail). **`updated_at`, `created_by`, `updated_by`** remain planned.
 
 ### Registry (implemented)
 
@@ -65,7 +65,7 @@ The `collections` table in [`src/db/schema.ts`](src/db/schema.ts) is the **metad
 
 **Row primary key:** Add a dedicated `id uuid PRIMARY KEY DEFAULT gen_random_uuid()` on every data table (Basalt record id). User-defined fields are additional columns; do not overload the collection slug or metadata id as the row PK exposed to the API.
 
-**Reserved column names:** Treat `id` and (when Audit Trail lands) `created_at`, `updated_at`, `created_by`, `updated_by` as system-owned. Validation in `collection-fields` / UI should reject field `name` collisions with those identifiers.
+**Reserved column names:** Treat `id`, `created_at`, and (when implemented) `updated_at`, `created_by`, `updated_by` as system-owned. Validation in `collection-fields` / UI should reject field `name` collisions with those identifiers.
 
 **DDL lifecycle (sketch):**
 
@@ -172,11 +172,12 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 - [x] tRPC for internal app usage (admin: `me`, `users`, `apiKeys`, `collections`, `records`; shapes evolve with the app)
 - [x] REST-ish JSON endpoints for external usage (`/api/v1/collections`, records under `/api/v1/collections/:slug/records`, etc.)
 - [x] API key auth via `Authorization: Bearer <key>` (plaintext shown once on create via `apiKeys.create`)
-- [x] Error shape `{ "error": { "code": string, "message": string } }`
+- [x] Error shape `{ "error": { "code": string, "message": string } }`; **5xx** responses use a **generic** client message for `INTERNAL_ERROR` with full detail **logged server-side** (no stack/DB text in the JSON body)
 - [x] API keys scoped by role and optional collection allowlist
 - [x] Per-collection API permissions toggles for read/create/update/delete (`collections.api_permissions` + `PATCH .../api-permissions`)
 - [x] Per-endpoint role requirements (admin-only or owner-only)
-- [x] Rate limiting per API key (configurable constant)
+- [x] **Rate limiting:** fixed **60s window**, **in-process** counters (not shared across Node instances—use an edge proxy or Redis if you need a global cap). **`API_KEY_RATE_LIMIT_PER_MINUTE`** caps authenticated traffic **per verified API key**; **`API_V1_RATE_LIMIT_PER_IP_PER_MINUTE`** applies **per client IP** (from `x-forwarded-for` / `x-real-ip`) **before** key resolution to throttle invalid-key and missing-key floods. Bounded maps with stale eviction in [`src/server/rest/api-key-rate-limit.ts`](src/server/rest/api-key-rate-limit.ts).
+- [x] **API key verification:** `scrypt` verification is **async** (non-blocking); bearer tokens must match a **strict** `bslt_` + base64url shape and max length before DB lookup (see [`src/server/api-key-crypto.ts`](src/server/api-key-crypto.ts))
 
 ## Import and Export
 
