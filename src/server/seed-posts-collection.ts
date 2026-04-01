@@ -80,7 +80,11 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
     }
   }
 
-  const [row] = await db.select({ id: collections.id }).from(collections).where(eq(collections.slug, POSTS_COLLECTION_SLUG)).limit(1);
+  const [row] = await db
+    .select({ id: collections.id })
+    .from(collections)
+    .where(eq(collections.slug, POSTS_COLLECTION_SLUG))
+    .limit(1);
   if (!row) {
     throw new Error("Expected posts collection after seed step.");
   }

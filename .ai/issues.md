@@ -1,0 +1,1 @@
+- [ ] Duplicate collection slug error from `collections.create` surfaces as an unhandled `TRPCClientError` in the Next.js dev overlay during Playwright `duplicate slug` test (server log noise; consider catching in the mutation UI path).

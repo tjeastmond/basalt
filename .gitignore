@@ -28,6 +28,10 @@ Temporary Items
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/e2e/.smoke-api-key
+/e2e/.smoke-api-key-user
 
 # next.js
 /.next/
