@@ -189,9 +189,9 @@ Server module [`src/server/collection-records.ts`](src/server/collection-records
 ## Audit Trail
 
 - [x] `created_at` on **each collection’s physical data table** (`timestamptz NOT NULL DEFAULT now()` on new tables; `ADD COLUMN IF NOT EXISTS` for legacy tables when the app loads the target or runs schema sync). Used for default list ordering. Rows that existed before the column was added get a backfill timestamp at add time, not the original insert time.
-- [ ] `updated_at`, `created_by`, `updated_by` on physical data tables
-- [ ] Audit fields beyond `created_at` are system-owned and immutable from record APIs
-- [ ] Show full audit block read-only on record detail (list/table already shows **Created**)
+- [x] `updated_at`, `created_by`, `updated_by` on physical data tables
+- [x] Audit fields beyond `created_at` are system-owned and immutable from record APIs
+- [x] Show full audit block read-only on record detail (list/table already shows **Created**)
 
 ## Example Content and Seeds
 

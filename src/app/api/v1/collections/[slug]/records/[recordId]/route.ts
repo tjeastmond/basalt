@@ -107,7 +107,8 @@ export async function PATCH(request: Request, context: RouteCtx) {
   }
 
   try {
-    const row = await updateCollectionRecord(target, recordId, values as Record<string, unknown>);
+    const actor = { kind: "api_key" as const, apiKeyId: principal.apiKeyId };
+    const row = await updateCollectionRecord(target, recordId, values as Record<string, unknown>, actor);
     if (!row) {
       return v1JsonError(404, "NOT_FOUND", "Record not found.");
     }

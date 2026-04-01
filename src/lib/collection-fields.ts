@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Physical `col_*` row uses `id`; audit columns reserved for a later milestone. */
+/** Physical `col_*` row uses `id` plus system-owned audit columns; not valid custom field names. */
 export const RESERVED_COLLECTION_FIELD_NAMES = new Set(["id", "created_at", "updated_at", "created_by", "updated_by"]);
 
 export const collectionFieldTypeSchema = z.enum(["text", "number", "boolean", "date", "json"]);

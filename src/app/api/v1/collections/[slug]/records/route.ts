@@ -131,7 +131,8 @@ export async function POST(request: Request, context: RouteCtx) {
   }
 
   try {
-    const row = await insertCollectionRecord(target, values as Record<string, unknown>);
+    const actor = { kind: "api_key" as const, apiKeyId: principal.apiKeyId };
+    const row = await insertCollectionRecord(target, values as Record<string, unknown>, actor);
     return v1JsonOk(201, { record: row });
   } catch (e) {
     if (e instanceof RecordValidationError) {

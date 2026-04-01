@@ -4,7 +4,11 @@ import { collections, db, getPool } from "@/db";
 import type { CollectionApiPermissions } from "@/lib/collection-api-permissions";
 import { normalizeCollectionApiPermissions } from "@/lib/collection-api-permissions";
 import type { CollectionFieldDefinition } from "@/lib/collection-fields";
-import { parseCollectionFields, validateValueAgainstFieldConstraints } from "@/lib/collection-fields";
+import {
+  parseCollectionFields,
+  RESERVED_COLLECTION_FIELD_NAMES,
+  validateValueAgainstFieldConstraints,
+} from "@/lib/collection-fields";
 import { escapeIlikePattern } from "@/lib/ilike-escape";
 import { assertSafeSqlIdentifier, collectionDataTableName } from "@/lib/collection-physical-table";
 
@@ -28,6 +32,21 @@ export type CollectionRecordsTargetWithApi = CollectionRecordsTarget & {
   apiPermissions: CollectionApiPermissions;
 };
 
+/** Who performed a record write; stored in `created_by` / `updated_by` on the physical row. */
+export type CollectionRecordActor = { kind: "user"; userId: string } | { kind: "api_key"; apiKeyId: string };
+
+function collectionRecordActorRef(actor: CollectionRecordActor): string {
+  return actor.kind === "user" ? actor.userId : `api_key:${actor.apiKeyId}`;
+}
+
+function assertInputHasNoSystemOwnedKeys(input: Record<string, unknown>): void {
+  for (const key of Object.keys(input)) {
+    if (RESERVED_COLLECTION_FIELD_NAMES.has(key)) {
+      throw new RecordValidationError(`Cannot set system field "${key}" via the API.`);
+    }
+  }
+}
+
 export async function loadCollectionRecordsTarget(collectionId: string): Promise<CollectionRecordsTarget | null> {
   const [row] = await db
     .select({
@@ -43,7 +62,7 @@ export async function loadCollectionRecordsTarget(collectionId: string): Promise
     return null;
   }
 
-  await ensureCreatedAtColumn(row.tableSuffix);
+  await ensurePhysicalAuditColumns(row.tableSuffix);
 
   const fields = parseCollectionFields(row.fields);
   const tableSql = collectionDataTableName(row.tableSuffix);
@@ -72,7 +91,7 @@ export async function loadCollectionTargetWithApiBySlug(slug: string): Promise<C
     return null;
   }
 
-  await ensureCreatedAtColumn(row.tableSuffix);
+  await ensurePhysicalAuditColumns(row.tableSuffix);
 
   const fields = parseCollectionFields(row.fields);
   const tableSql = collectionDataTableName(row.tableSuffix);
@@ -95,10 +114,13 @@ function assertKnownFieldName(fields: CollectionFieldDefinition[], name: string)
   return field;
 }
 
-async function ensureCreatedAtColumn(tableSuffix: string): Promise<void> {
+async function ensurePhysicalAuditColumns(tableSuffix: string): Promise<void> {
   const pool = getPool();
   const table = collectionDataTableName(tableSuffix);
   await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()`);
+  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`);
+  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS created_by text NULL`);
+  await pool.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_by text NULL`);
 }
 
 function coerceFieldValue(field: CollectionFieldDefinition, raw: unknown, allowNull: boolean): unknown {
@@ -221,6 +243,9 @@ function buildUpdateColumns(
     if (key === "id") {
       throw new RecordValidationError('Cannot update "id".');
     }
+    if (RESERVED_COLLECTION_FIELD_NAMES.has(key)) {
+      throw new RecordValidationError(`Cannot set system field "${key}" via the API.`);
+    }
     const field = assertKnownFieldName(fields, key);
     const raw = input[key];
     if (raw === undefined) {
@@ -235,7 +260,7 @@ function buildUpdateColumns(
 }
 
 function selectColumnList(fields: CollectionFieldDefinition[]): string {
-  const parts = ["id", "created_at"];
+  const parts = ["id", "created_at", "updated_at", "created_by", "updated_by"];
   for (const f of fields) {
     assertSafeSqlIdentifier(f.name);
     parts.push(f.name);
@@ -261,6 +286,10 @@ function buildOrderBySql(
   if (primary === "created_at") {
     assertSafeSqlIdentifier("created_at");
     return `ORDER BY created_at ${dir} NULLS LAST, id DESC`;
+  }
+  if (primary === "updated_at") {
+    assertSafeSqlIdentifier("updated_at");
+    return `ORDER BY updated_at ${dir} NULLS LAST, id DESC`;
   }
 
   const field = target.fields.find((f) => f.name === primary);
@@ -342,12 +371,17 @@ export async function getCollectionRecord(
 export async function insertCollectionRecord(
   target: CollectionRecordsTarget,
   input: Record<string, unknown>,
+  actor: CollectionRecordActor,
 ): Promise<Record<string, unknown>> {
+  assertInputHasNoSystemOwnedKeys(input);
+  const actorRef = collectionRecordActorRef(actor);
   const { columns, values } = buildInsertColumns(target.fields, input);
+  const pool = getPool();
+  const returning = selectColumnList(target.fields);
+
   if (columns.length === 0) {
-    const pool = getPool();
-    const sql = `INSERT INTO ${target.tableSql} DEFAULT VALUES RETURNING ${selectColumnList(target.fields)}`;
-    const res = await pool.query<Record<string, unknown>>(sql);
+    const sql = `INSERT INTO ${target.tableSql} (created_by, updated_by) VALUES ($1, $1) RETURNING ${returning}`;
+    const res = await pool.query<Record<string, unknown>>(sql, [actorRef]);
     const row = res.rows[0];
     if (!row) {
       throw new RecordValidationError("Insert returned no row.");
@@ -355,10 +389,11 @@ export async function insertCollectionRecord(
     return row;
   }
 
-  const pool = getPool();
-  const placeholders = columns.map((_, i) => `$${i + 1}`);
-  const sql = `INSERT INTO ${target.tableSql} (${columns.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING ${selectColumnList(target.fields)}`;
-  const res = await pool.query<Record<string, unknown>>(sql, values);
+  const auditIdx = values.length + 1;
+  const insertCols = [...columns, "created_by", "updated_by"];
+  const placeholders = [...columns.map((_, i) => `$${i + 1}`), `$${auditIdx}`, `$${auditIdx}`];
+  const sql = `INSERT INTO ${target.tableSql} (${insertCols.join(", ")}) VALUES (${placeholders.join(", ")}) RETURNING ${returning}`;
+  const res = await pool.query<Record<string, unknown>>(sql, [...values, actorRef]);
   const row = res.rows[0];
   if (!row) {
     throw new RecordValidationError("Insert returned no row.");
@@ -370,10 +405,13 @@ export async function updateCollectionRecord(
   target: CollectionRecordsTarget,
   recordId: string,
   input: Record<string, unknown>,
+  actor: CollectionRecordActor,
 ): Promise<Record<string, unknown> | null> {
   if (!/^[0-9a-f-]{36}$/i.test(recordId)) {
     return null;
   }
+  assertInputHasNoSystemOwnedKeys(input);
+  const actorRef = collectionRecordActorRef(actor);
   const { columns, values } = buildUpdateColumns(target.fields, input);
   if (columns.length === 0) {
     return getCollectionRecord(target, recordId);
@@ -381,9 +419,11 @@ export async function updateCollectionRecord(
 
   const pool = getPool();
   const setParts = columns.map((c, i) => `${c} = $${i + 1}`);
-  const nextIdx = values.length + 1;
-  const sql = `UPDATE ${target.tableSql} SET ${setParts.join(", ")} WHERE id = $${nextIdx}::uuid RETURNING ${selectColumnList(target.fields)}`;
-  const res = await pool.query<Record<string, unknown>>(sql, [...values, recordId]);
+  const updatedByIdx = values.length + 1;
+  const idIdx = values.length + 2;
+  setParts.push("updated_at = now()", `updated_by = $${updatedByIdx}`);
+  const sql = `UPDATE ${target.tableSql} SET ${setParts.join(", ")} WHERE id = $${idIdx}::uuid RETURNING ${selectColumnList(target.fields)}`;
+  const res = await pool.query<Record<string, unknown>>(sql, [...values, actorRef, recordId]);
   return res.rows[0] ?? null;
 }
 

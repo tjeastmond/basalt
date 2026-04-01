@@ -86,10 +86,11 @@ export const recordsRouter = router({
         values: recordValuesSchema,
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const target = await requireTarget(input.collectionId);
+      const actor = { kind: "user" as const, userId: ctx.member.userId };
       try {
-        return await insertCollectionRecord(target, input.values);
+        return await insertCollectionRecord(target, input.values, actor);
       } catch (e) {
         mapRecordError(e);
       }
@@ -103,10 +104,11 @@ export const recordsRouter = router({
         values: recordValuesSchema,
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const target = await requireTarget(input.collectionId);
+      const actor = { kind: "user" as const, userId: ctx.member.userId };
       try {
-        const row = await updateCollectionRecord(target, input.id, input.values);
+        const row = await updateCollectionRecord(target, input.id, input.values, actor);
         if (!row) {
           throw new TRPCError({ code: "NOT_FOUND", message: "Record not found." });
         }
