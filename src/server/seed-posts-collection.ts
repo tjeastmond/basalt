@@ -4,7 +4,14 @@ import { collections, db, getPool } from "@/db";
 import type { CollectionFieldLooseInput } from "@/lib/collection-fields";
 import { finalizeFieldDefinitions, parseCollectionFields } from "@/lib/collection-fields";
 import { collectionDataTableExists, createCollectionDataTable } from "@/server/collection-data-ddl";
-import { insertCollectionRecord, loadCollectionRecordsTarget } from "@/server/collection-records";
+import {
+  type CollectionRecordActor,
+  insertCollectionRecord,
+  loadCollectionRecordsTarget,
+} from "@/server/collection-records";
+
+/** Stored in `created_by` / `updated_by` for rows inserted by `pnpm db:seed` (no Better Auth user yet). */
+const seedActor: CollectionRecordActor = { kind: "user", userId: "system:seed" };
 
 export const POSTS_COLLECTION_SLUG = "posts" as const;
 
@@ -110,7 +117,7 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
   ];
 
   for (const input of samples) {
-    await insertCollectionRecord(target, input);
+    await insertCollectionRecord(target, input, seedActor);
   }
 
   console.info("Seeded %i sample row(s) into %s.", samples.length, target.tableSql);
