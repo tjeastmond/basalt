@@ -28,7 +28,7 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 - **Language:** TypeScript
 - **Package manager:** pnpm
 - **Styling:** Tailwind CSS v4, PostCSS, `tw-animate-css`
-- **UI:** [shadcn/ui](https://ui.shadcn.com/) (style: base-nova), `@base-ui/react`, `next-themes`, Lucide (`lucide-react`), `class-variance-authority`, `clsx`, `tailwind-merge`
+- **UI:** [shadcn/ui](https://ui.shadcn.com/) (style: base-nova), `@base-ui/react`, class-based dark mode via in-app `ThemeProvider` (`src/components/theme-provider.tsx`) plus a blocking script in root layout (`src/lib/theme-init-script.ts`), Lucide (`lucide-react`), `class-variance-authority`, `clsx`, `tailwind-merge`
 - **Data:** Postgres (Docker locally), [Drizzle ORM](https://orm.drizzle.team/), [Better Auth](https://www.better-auth.com/) (email/password)
 - **API (app):** [tRPC](https://trpc.io/) v11 (`@trpc/server`, `@trpc/client`, `@trpc/react-query`), [TanStack Query](https://tanstack.com/query) (`@tanstack/react-query`), [superjson](https://github.com/blitz-js/superjson) for dates and other non-JSON types on the wire, and [Zod](https://zod.dev/) for procedure inputs.
 - **tRPC layout:** Route handler [`src/app/api/trpc/[trpc]/route.ts`](src/app/api/trpc/[trpc]/route.ts), merged routers under [`src/server/api/`](src/server/api/), client [`TrpcProvider` in `src/trpc/react.tsx`](src/trpc/react.tsx) inside root [`layout.tsx`](src/app/layout.tsx). Use `protectedProcedure` and `adminProcedure` from [`src/server/api/trpc.ts`](src/server/api/trpc.ts). Resolve the current user’s access level from Postgres via [`getMemberFromHeaders`](src/lib/member.ts) in tRPC context—do not treat the client as authoritative for roles.

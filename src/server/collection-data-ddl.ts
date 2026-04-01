@@ -57,6 +57,30 @@ function pgTypeForFieldType(t: CollectionFieldType): string {
   }
 }
 
+/**
+ * SQL expression used only when adding a NOT NULL column to a non-empty table
+ * (Postgres requires a fill for existing rows). Paired with DROP DEFAULT when
+ * `field.defaultValue` is undefined so new inserts still require an app-provided value.
+ */
+function typeBackfillDefaultExpression(type: CollectionFieldType): string {
+  switch (type) {
+    case "text":
+      return "''::text";
+    case "number":
+      return "0::double precision";
+    case "boolean":
+      return "false";
+    case "date":
+      return "now()";
+    case "json":
+      return "'{}'::jsonb";
+    default: {
+      const _exhaustive: never = type;
+      return _exhaustive;
+    }
+  }
+}
+
 function formatColumnDefault(field: CollectionFieldDefinition): string | null {
   if (field.defaultValue === undefined) {
     return null;
@@ -95,6 +119,93 @@ function buildColumnDefinitionBase(field: CollectionFieldDefinition): string {
     parts.push(`DEFAULT ${d}`);
   }
   return parts.join(" ");
+}
+
+/**
+ * ALTER TABLE … ADD COLUMN statements for a new field when the physical table may already have rows.
+ * Postgres rejects `ADD … NOT NULL` without DEFAULT on populated tables; unique + constant defaults also collide.
+ */
+export function buildAddColumnStatementsForExistingTable(
+  table: string,
+  field: CollectionFieldDefinition,
+  rowCount: number,
+): string[] {
+  assertSafeSqlIdentifier(table);
+  assertSafeSqlIdentifier(field.name);
+  const pgType = pgTypeForFieldType(field.type);
+  const col = field.name;
+
+  if (rowCount === 0) {
+    return [`ALTER TABLE ${table} ADD COLUMN ${buildColumnDefinitionBase(field)}`];
+  }
+
+  const userDefault = formatColumnDefault(field);
+
+  if (field.required && userDefault !== null && field.unique && rowCount > 1) {
+    throw new Error(
+      `Cannot add required unique field "${col}" with a constant default while the table has ${rowCount} rows. ` +
+        "Add the column as optional, set distinct values per row, then enable unique and required (or use a per-row migration).",
+    );
+  }
+
+  if (!field.required) {
+    const parts: string[] = [`${col} ${pgType} NULL`];
+    if (userDefault !== null) {
+      parts.push(`DEFAULT ${userDefault}`);
+    }
+    return [`ALTER TABLE ${table} ADD COLUMN ${parts.join(" ")}`];
+  }
+
+  if (userDefault !== null) {
+    return [`ALTER TABLE ${table} ADD COLUMN ${col} ${pgType} NOT NULL DEFAULT ${userDefault}`];
+  }
+
+  if (!field.unique) {
+    const fill = typeBackfillDefaultExpression(field.type);
+    return [
+      `ALTER TABLE ${table} ADD COLUMN ${col} ${pgType} NOT NULL DEFAULT ${fill}`,
+      `ALTER TABLE ${table} ALTER COLUMN ${col} DROP DEFAULT`,
+    ];
+  }
+
+  if (field.type === "boolean" && rowCount > 2) {
+    throw new Error(
+      `Cannot add required unique boolean field "${col}": a boolean column allows at most two distinct values, ` +
+        `but the table has ${rowCount} rows.`,
+    );
+  }
+
+  const stmts: string[] = [`ALTER TABLE ${table} ADD COLUMN ${col} ${pgType} NULL`];
+
+  let assignExpr: string;
+  switch (field.type) {
+    case "text":
+      assignExpr = "gen_random_uuid()::text";
+      break;
+    case "number":
+      assignExpr = "n.rn::double precision";
+      break;
+    case "boolean":
+      assignExpr = "(n.rn = 1)";
+      break;
+    case "date":
+      assignExpr = "('epoch'::timestamptz + (n.rn * interval '1 microsecond'))";
+      break;
+    case "json":
+      assignExpr = "to_jsonb(gen_random_uuid()::text)";
+      break;
+    default: {
+      const _exhaustive: never = field.type;
+      return _exhaustive;
+    }
+  }
+
+  stmts.push(`WITH numbered AS (SELECT id, row_number() OVER (ORDER BY id) AS rn FROM ${table})
+UPDATE ${table} t SET ${col} = ${assignExpr}
+FROM numbered n WHERE t.id = n.id AND t.${col} IS NULL`);
+  stmts.push(`ALTER TABLE ${table} ALTER COLUMN ${col} SET NOT NULL`);
+
+  return stmts;
 }
 
 function buildCreateTableSql(tableSuffix: string, fields: CollectionFieldDefinition[]): string {
@@ -216,6 +327,14 @@ export async function syncCollectionDataTableSchema(
   );
   const prevById = new Map(previous.map((f) => [f.id, f]));
   const nextIds = new Set(next.map((f) => f.id));
+  const newFieldDefs = next.filter((n) => !prevById.has(n.id));
+
+  let existingRowCount = 0;
+  if (newFieldDefs.length > 0) {
+    const countRes = await executor.execute(sql.raw(`SELECT COUNT(*)::bigint AS c FROM ${table}`));
+    const row = rowsFromPgExecute<{ c: string | bigint | number }>(countRes)[0];
+    existingRowCount = Number(row?.c ?? 0);
+  }
 
   const statements: string[] = [];
 
@@ -282,7 +401,8 @@ export async function syncCollectionDataTableSchema(
 
   for (const n of next) {
     if (!prevById.has(n.id)) {
-      statements.push(`ALTER TABLE ${table} ADD COLUMN ${buildColumnDefinitionBase(n)}`);
+      const addStmts = buildAddColumnStatementsForExistingTable(table, n, existingRowCount);
+      statements.push(...addStmts);
       if (n.unique) {
         statements.push(
           `ALTER TABLE ${table} ADD CONSTRAINT ${uniqueConstraintName(tableSuffix, n.name)} UNIQUE (${n.name})`,

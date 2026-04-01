@@ -13,18 +13,29 @@ const machineNameSchema = z
   .regex(/^[a-z][a-z0-9_]*$/, "Use lowercase letters, numbers, and underscores; start with a letter.");
 
 /** API / form input before normalization (allows spaces, capitals, etc.). */
-export const collectionFieldLooseSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).max(200),
-  type: collectionFieldTypeSchema,
-  required: z.boolean().default(false),
-  unique: z.boolean().default(false),
-  defaultValue: z.unknown().optional(),
-  minLength: z.number().int().min(0).optional(),
-  maxLength: z.number().int().min(0).optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-});
+export const collectionFieldLooseSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string().min(1).max(200),
+    type: collectionFieldTypeSchema,
+    required: z.boolean().default(false),
+    unique: z.boolean().default(false),
+    defaultValue: z.unknown().optional(),
+    minLength: z.number().int().min(0).optional(),
+    maxLength: z.number().int().min(0).optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+    multiline: z.boolean().optional(),
+  })
+  .superRefine((field, ctx) => {
+    if (field.multiline === true && field.type !== "text") {
+      ctx.addIssue({
+        code: "custom",
+        message: "multiline applies only to text fields.",
+        path: ["multiline"],
+      });
+    }
+  });
 
 export const collectionFieldsLooseArraySchema = z.array(collectionFieldLooseSchema);
 
@@ -161,8 +172,16 @@ export const collectionFieldDefinitionSchema = z
     maxLength: z.number().int().min(0).optional(),
     min: z.number().optional(),
     max: z.number().optional(),
+    multiline: z.boolean().optional(),
   })
   .superRefine((field, ctx) => {
+    if (field.multiline === true && field.type !== "text") {
+      ctx.addIssue({
+        code: "custom",
+        message: "multiline applies only to text fields.",
+        path: ["multiline"],
+      });
+    }
     if (field.minLength !== undefined && field.maxLength !== undefined && field.minLength > field.maxLength) {
       ctx.addIssue({
         code: "custom",

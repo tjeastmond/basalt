@@ -302,6 +302,13 @@ export function FieldInput(props: {
           className="border-input min-h-24 rounded-md border px-3 py-2 font-mono text-sm"
           disabled={props.disabled}
         />
+      ) : f.type === "text" && f.multiline ? (
+        <textarea
+          value={props.value}
+          onChange={(e) => props.onChange(e.target.value)}
+          className="border-input min-h-32 rounded-md border px-3 py-2 text-sm"
+          disabled={props.disabled}
+        />
       ) : (
         <input
           value={props.value}
@@ -313,6 +320,7 @@ export function FieldInput(props: {
       )}
       <span className="text-muted-foreground text-xs">
         {hint(f.type)}
+        {f.type === "text" && f.multiline ? " Multiple lines allowed." : null}
         {f.type === "text" && (f.minLength !== undefined || f.maxLength !== undefined) ? (
           <>
             {" "}
