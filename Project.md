@@ -2,7 +2,7 @@
 
 In this file, we will define what features and functionality we want to deliver for Basalt.
 
-The inspiration for this project is: https://pocketbase.io. We will include a lot of the same features, but not everything so don't make assumptions while we flesh out this file and eventually `Plan.md`.
+The inspiration for this project is: [https://pocketbase.io](https://pocketbase.io). We will include a lot of the same features, but not everything so don't make assumptions while we flesh out this file and eventually `Plan.md`.
 
 ## Tech Stack and Tools
 

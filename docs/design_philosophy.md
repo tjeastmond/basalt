@@ -26,7 +26,7 @@ Basalt’s UI is **text-first**, **minimal**, and **system-driven**: lots of whi
 ### System over one-offs
 
 - Compose from **shadcn** patterns in-repo; extend shared components instead of one-off widgets.
-- Use **Tailwind** tokens (`bg-`*, `text-*`, `border-*`, radii) so **dark mode** stays coherent via `ThemeProvider` and the root theme script.
+- Use **Tailwind** tokens (`bg-`*, `text-`*, `border-*`, radii) so **dark mode** stays coherent via `ThemeProvider` and the root theme script.
 - **Accessibility**: semantic HTML, focus order, keyboard paths—verify in real flows, not only defaults.
 
 ### Data and tools
@@ -47,7 +47,7 @@ A **calm, text-forward** page (developer-/studio-style) fits this doc when it:
 
 Tablets are a **first-class** width, not a stretched phone layout.
 
-- **Padding**: increase horizontal padding from phone to tablet (`px-`* → `md:px-*`) so content doesn’t hug the bezel.
+- **Padding**: increase horizontal padding from phone to tablet (`px-`* → `md:px-`*) so content doesn’t hug the bezel.
 - **Tap targets**: interactive icons and links in footers and nav aim for **at least ~44×44px** hit area (padding on the control or `min-h` / `min-w` + flex centering), even if the glyph is smaller.
 - **Type**: avoid stepping body text down on tablet; if anything, **slightly larger** line-height or size for comfortable reading at arm’s length.
 - **Layout**: keep **one column** for narrative pages; introduce side-by-side layouts only when the content truly benefits (e.g. form + aside), and test at `md` breakpoints.

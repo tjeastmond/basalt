@@ -6,7 +6,7 @@ Build a single-tenant, PocketBase-inspired admin and API for collections and rec
 
 ## Working on next
 
-**Audit trail** beyond `created_at` on physical data tables (`updated_at`, `created_by`, `updated_by`); richer **record UX** (optional slide-in panels vs full page); **import/export**; smoke/acceptance tests for auth, collections, records, and `/api/v1`.
+Tracked initiatives (overview, definition of done, tasks): see [`docs/projects/`](docs/projects/). Remaining themes include **import/export**, **records UX** (slide-in panels vs full page), **default avatars**, **ops/deployment** (env, Vercel, runbooks around runtime DDL), and **mobile-friendly** layout. Smoke/acceptance coverage for auth, collections, records, and `/api/v1` is in place per **Tests and Acceptance** below.
 
 ## Foundation and Tooling
 
