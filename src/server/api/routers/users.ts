@@ -13,6 +13,7 @@ import {
   canChangeUserEmail,
   canCreateUserWithLevel,
 } from "@/lib/role-policy";
+import { log } from "@/lib/server/logging/logger";
 import { adminProcedure, router } from "@/server/api/trpc";
 
 const accessSlugSchema = z.enum(["owner", "admin", "user"]);
@@ -111,6 +112,8 @@ export const usersRouter = router({
         password: passwordHash,
       });
 
+      log.info("user created", { userId, accessLevelSlug: newLevel, actorAccessSlug: actor });
+
       return { id: userId };
     }),
 
@@ -193,6 +196,8 @@ export const usersRouter = router({
         }
       }
 
+      log.info("user updated", { userId: input.userId, actorAccessSlug: actor });
+
       return { ok: true as const };
     }),
 
@@ -235,6 +240,13 @@ export const usersRouter = router({
 
       const nextLevelId = await resolveLevelId(nextLevel);
       await db.update(user).set({ accessLevelId: nextLevelId }).where(eq(user.id, input.userId));
+
+      log.info("user access level updated", {
+        userId: input.userId,
+        from: targetCurrent,
+        to: nextLevel,
+        actorAccessSlug: actor,
+      });
 
       return { ok: true as const };
     }),

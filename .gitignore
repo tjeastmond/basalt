@@ -40,6 +40,9 @@ Temporary Items
 # production
 /build
 
+# local logs
+data/logs/
+
 # misc
 *.pem
 

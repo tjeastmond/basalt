@@ -24,6 +24,7 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 | `db:migrate`       | Drizzle: apply migrations                            |
 | `db:push`          | Drizzle: push schema (dev shortcut)                  |
 | `db:seed`          | Seed access levels + default Owner user              |
+| `logs:tail`        | Tail structured logs (`data/logs/current.log`)       |
 
 ## Tech stack
 
@@ -37,6 +38,7 @@ This repository is **Basalt**, a Next.js application. Use **pnpm** for installs 
 - **tRPC layout:** Route handler [`src/app/api/trpc/[trpc]/route.ts`](src/app/api/trpc/[trpc]/route.ts), merged routers under [`src/server/api/`](src/server/api/), client [`TrpcProvider` in `src/trpc/react.tsx`](src/trpc/react.tsx) inside root [`layout.tsx`](src/app/layout.tsx). Use `protectedProcedure` and `adminProcedure` from [`src/server/api/trpc.ts`](src/server/api/trpc.ts). Resolve the current user’s access level from Postgres via [`getMemberFromHeaders`](src/lib/member.ts) in tRPC context—do not treat the client as authoritative for roles.
 - **Testing:** Vitest (with `@vitejs/plugin-react`, `jsdom`); Playwright smoke tests under [`e2e/`](e2e/) (`pnpm test:e2e`, see [`.env.example`](.env.example) for `SMOKE_PASSWORD`)
 - **Quality:** ESLint (`eslint-config-next`, `eslint-config-prettier`), Prettier
+- **Logging:** pino → `data/logs/` (JSON lines, size rotation, `current.log` symlink); use `log.*` from [`src/lib/server/logging/logger.ts`](src/lib/server/logging/logger.ts) in server code — not `console.*`. Disabled in Vitest by default unless `LOG_ENABLED=true`. Set `LOG_ENABLED=false` on Vercel until remote shipping exists. See [`.cursor/rules/logging.mdc`](.cursor/rules/logging.mdc).
 
 Pinned versions live in `package.json`.
 

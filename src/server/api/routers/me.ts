@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db, user } from "@/db";
 import { auth } from "@/lib/auth";
+import { log } from "@/lib/server/logging/logger";
 import { protectedProcedure, router } from "@/server/api/trpc";
 
 export const meRouter = router({
@@ -30,11 +31,13 @@ export const meRouter = router({
           ...(input.image !== undefined ? { image: input.image } : {}),
         },
       });
+      log.info("profile updated", { userId: ctx.member.userId });
       return { ok: true as const };
     }),
 
   completeOnboarding: protectedProcedure.mutation(async ({ ctx }) => {
     await db.update(user).set({ onboardingCompletedAt: new Date() }).where(eq(user.id, ctx.member.userId));
+    log.info("onboarding completed", { userId: ctx.member.userId });
     return { ok: true as const };
   }),
 });

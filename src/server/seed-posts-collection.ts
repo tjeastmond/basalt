@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { collections, db, getPool } from "@/db";
 import type { CollectionFieldLooseInput } from "@/lib/collection-fields";
 import { finalizeFieldDefinitions, parseCollectionFields } from "@/lib/collection-fields";
+import { log } from "@/lib/server/logging/logger";
 import { collectionDataTableExists, createCollectionDataTable } from "@/server/collection-data-ddl";
 import {
   type CollectionRecordActor,
@@ -68,7 +69,7 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
 
       await createCollectionDataTable(tx, row.tableSuffix, fields);
     });
-    console.info("Seeded default collection: posts (physical table col_posts).");
+    log.info("seeded default collection", { slug: POSTS_COLLECTION_SLUG, tableSuffix: POSTS_COLLECTION_SLUG });
   } else {
     const tableOk = await collectionDataTableExists(db, existing.tableSuffix);
     if (!tableOk) {
@@ -76,7 +77,7 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
       await db.transaction(async (tx) => {
         await createCollectionDataTable(tx, existing.tableSuffix, storedFields);
       });
-      console.info("Repaired missing physical table for collection posts (col_%s).", existing.tableSuffix);
+      log.info("repaired missing physical table", { slug: POSTS_COLLECTION_SLUG, tableSuffix: existing.tableSuffix });
     }
   }
 
@@ -98,7 +99,7 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
   const countRes = await pool.query<{ c: number }>(`SELECT count(*)::int AS c FROM ${target.tableSql}`);
   const count = countRes.rows[0]?.c ?? 0;
   if (count > 0) {
-    console.info("Posts sample rows skipped: %s already has %i row(s).", target.tableSql, count);
+    log.info("posts sample rows skipped", { table: target.tableSql, rowCount: count });
     return;
   }
 
@@ -124,5 +125,5 @@ export async function ensurePostsCollectionAndSampleData(): Promise<void> {
     await insertCollectionRecord(target, input, seedActor);
   }
 
-  console.info("Seeded %i sample row(s) into %s.", samples.length, target.tableSql);
+  log.info("seeded posts sample rows", { table: target.tableSql, count: samples.length });
 }

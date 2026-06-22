@@ -1,6 +1,8 @@
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
+import { log } from "@/lib/server/logging/logger";
+
 import * as schema from "./schema";
 
 type AppDb = NodePgDatabase<typeof schema>;
@@ -22,6 +24,7 @@ function createPool(): Pool {
 export function getPool(): Pool {
   if (!globalForDb.pool) {
     globalForDb.pool = createPool();
+    log.info("database pool ready");
   }
   return globalForDb.pool;
 }

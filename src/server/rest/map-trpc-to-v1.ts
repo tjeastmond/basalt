@@ -1,12 +1,13 @@
 import { TRPCError } from "@trpc/server";
 import type { NextResponse } from "next/server";
 
+import { log } from "@/lib/server/logging/logger";
 import { v1JsonError, type V1ErrorBody } from "@/server/rest/v1-json";
 
 const INTERNAL_MSG = "An unexpected error occurred.";
 
 function logV1InternalError(e: unknown): void {
-  console.error("[api/v1] internal error", e);
+  log.errorFromUnknown(e, { route: "api/v1" });
 }
 
 export function mapTrpcOrUnknownToV1Response(e: unknown): NextResponse<V1ErrorBody> {

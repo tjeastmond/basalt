@@ -1,6 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 
 import type { CollectionFieldDefinition, CollectionFieldType } from "@/lib/collection-fields";
+import { log } from "@/lib/server/logging/logger";
 import {
   assertSafeSqlIdentifier,
   assertValidTableSuffix,
@@ -307,11 +308,13 @@ export async function createCollectionDataTable(
   fields: CollectionFieldDefinition[],
 ): Promise<void> {
   const stmt = buildCreateTableSql(tableSuffix, fields);
+  log.debug("collection ddl create table", { tableSuffix, statement: stmt });
   await executor.execute(sql.raw(stmt));
 }
 
 export async function dropCollectionDataTable(executor: SqlExecutor, tableSuffix: string): Promise<void> {
   const table = collectionDataTableName(tableSuffix);
+  log.debug("collection ddl drop table", { tableSuffix, table });
   await executor.execute(sql.raw(`DROP TABLE IF EXISTS ${table}`));
 }
 
@@ -421,6 +424,7 @@ export async function syncCollectionDataTableSchema(
   }
 
   for (const stmt of statements) {
+    log.debug("collection ddl migrate", { tableSuffix, statement: stmt });
     await executor.execute(sql.raw(stmt));
   }
 }

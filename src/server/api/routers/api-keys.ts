@@ -5,6 +5,7 @@ import { z } from "zod";
 import { accessLevels, apiKeys, db } from "@/db";
 import type { AccessSlug } from "@/lib/access-level";
 import { canCreateUserWithLevel } from "@/lib/role-policy";
+import { log } from "@/lib/server/logging/logger";
 import { generateApiKeyPlaintext, hashApiKeySecret } from "@/server/api-key-crypto";
 import { adminProcedure, router } from "@/server/api/trpc";
 
@@ -89,6 +90,13 @@ export const apiKeysRouter = router({
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create API key." });
     }
 
+    log.info("api key created", {
+      id: row.id,
+      keyPrefix: row.keyPrefix,
+      accessLevelId: input.accessLevelId,
+      actorAccessSlug: ctx.member.accessSlug,
+    });
+
     return {
       id: row.id,
       label: row.label,
@@ -108,6 +116,8 @@ export const apiKeysRouter = router({
     if (!updated) {
       throw new TRPCError({ code: "NOT_FOUND", message: "API key not found or already revoked." });
     }
+
+    log.info("api key revoked", { id: input.id });
 
     return { ok: true as const };
   }),

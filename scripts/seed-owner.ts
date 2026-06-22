@@ -1,22 +1,19 @@
-import { config } from "dotenv";
 import { eq } from "drizzle-orm";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-import { hashPassword } from "better-auth/crypto";
 import { randomUUID } from "node:crypto";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, "..");
+import { hashPassword } from "better-auth/crypto";
+import { loadProjectEnvFiles } from "@/lib/server/loadEnvFile";
+import { flushLogs, initLogger, log } from "@/lib/server/logging/logger";
 
-config({ path: path.join(root, ".env.local") });
-config({ path: path.join(root, ".env") });
+loadProjectEnvFiles();
 
 const OWNER_EMAIL = "tj@test.com";
 const OWNER_PASSWORD = "basalt";
 const OWNER_NAME = "Basalt";
 
 async function main() {
+  await initLogger();
+
   const [{ db, getReadonlyDb, accessLevels, user, account }, { ensurePostsCollectionAndSampleData }] =
     await Promise.all([import("../src/db/index"), import("../src/server/seed-posts-collection")]);
   const readDb = getReadonlyDb();
@@ -41,7 +38,7 @@ async function main() {
   const [existingUser] = await readDb.select().from(user).where(eq(user.email, OWNER_EMAIL)).limit(1);
 
   if (existingUser) {
-    console.info("Seed skipped: default owner already exists (%s)", OWNER_EMAIL);
+    log.info("seed skipped: default owner already exists", { email: OWNER_EMAIL });
     return;
   }
 
@@ -67,10 +64,16 @@ async function main() {
     password: passwordHash,
   });
 
-  console.info("Seeded default owner: %s (password: %s)", OWNER_EMAIL, OWNER_PASSWORD);
+  log.info("seeded default owner", { email: OWNER_EMAIL });
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .catch(async (err) => {
+    await initLogger();
+    log.errorFromUnknown(err, { script: "seed-owner" });
+    await flushLogs();
+    process.exit(1);
+  })
+  .finally(async () => {
+    await flushLogs();
+  });

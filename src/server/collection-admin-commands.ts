@@ -6,6 +6,7 @@ import { collections, db } from "@/db";
 import type { CollectionApiPermissions } from "@/lib/collection-api-permissions";
 import { collectionFieldsLooseArraySchema, finalizeFieldDefinitions } from "@/lib/collection-fields";
 import { MAX_TABLE_SUFFIX_LENGTH } from "@/lib/collection-physical-table";
+import { log } from "@/lib/server/logging/logger";
 import { createCollectionDataTable, dropCollectionDataTable } from "@/server/collection-data-ddl";
 
 const collectionSlugSchema = z
@@ -62,12 +63,14 @@ export async function createCollectionAsAdmin(input: CollectionCreateInput) {
       }
 
       await createCollectionDataTable(tx, row.tableSuffix, fields);
+      log.info("collection created", { id: row.id, slug: row.slug, tableSuffix: row.tableSuffix });
       return row;
     });
   } catch (e) {
     if (e instanceof TRPCError) {
       throw e;
     }
+    log.errorFromUnknown(e, { operation: "collection.create", slug: input.slug });
     const message = e instanceof Error ? e.message : "Failed to create collection data table.";
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
   }
@@ -88,7 +91,9 @@ export async function deleteCollectionBySlug(slug: string): Promise<void> {
       await dropCollectionDataTable(tx, existing.tableSuffix);
       await tx.delete(collections).where(eq(collections.id, existing.id));
     });
+    log.info("collection deleted", { id: existing.id, slug, tableSuffix: existing.tableSuffix });
   } catch (e) {
+    log.errorFromUnknown(e, { operation: "collection.delete", slug });
     const message = e instanceof Error ? e.message : "Failed to delete collection data table.";
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
   }
@@ -117,5 +122,6 @@ export async function updateCollectionApiPermissionsBySlug(
     throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to update API permissions." });
   }
 
+  log.info("collection api permissions updated", { id: existing.id, slug });
   return updated.apiPermissions;
 }

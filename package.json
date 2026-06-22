@@ -19,7 +19,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:seed": "tsx scripts/seed-owner.ts"
+    "db:seed": "tsx scripts/seed-owner.ts",
+    "logs:tail": "sh scripts/logs-tail.sh"
   },
   "packageManager": "pnpm@10.31.0",
   "dependencies": {
@@ -35,6 +36,7 @@
     "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "pg": "^8.20.0",
+    "pino": "^10.3.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "shadcn": "^4.1.1",

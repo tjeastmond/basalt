@@ -12,6 +12,7 @@ import {
   setsEqual,
 } from "@/lib/collection-fields";
 import { MAX_TABLE_SUFFIX_LENGTH } from "@/lib/collection-physical-table";
+import { log } from "@/lib/server/logging/logger";
 import { collectionCreateInputSchema, createCollectionAsAdmin } from "@/server/collection-admin-commands";
 import {
   collectionDataTableExists,
@@ -134,11 +135,18 @@ export const collectionsRouter = router({
       revalidatePath(`/collections/${input.id}/records/new`);
       revalidatePath("/collections");
 
+      log.info("collection updated", {
+        id: row.id,
+        slug: row.slug,
+        tableSuffix: row.tableSuffix,
+      });
+
       return { status: "ok" as const, collection: row };
     } catch (e) {
       if (e instanceof TRPCError) {
         throw e;
       }
+      log.errorFromUnknown(e, { operation: "collection.update", id: input.id, slug: input.slug });
       const message = e instanceof Error ? e.message : "Failed to sync collection data table.";
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
     }
@@ -160,9 +168,12 @@ export const collectionsRouter = router({
         await tx.delete(collections).where(eq(collections.id, input.id));
       });
     } catch (e) {
+      log.errorFromUnknown(e, { operation: "collection.delete", id: input.id, tableSuffix: existing.tableSuffix });
       const message = e instanceof Error ? e.message : "Failed to delete collection data table.";
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
     }
+
+    log.info("collection deleted", { id: existing.id, tableSuffix: existing.tableSuffix });
 
     return { ok: true as const };
   }),

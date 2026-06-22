@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
+import { log } from "@/lib/server/logging/logger";
 import {
   RecordValidationError,
   deleteCollectionRecord,
@@ -55,6 +56,7 @@ export const recordsRouter = router({
       if (e instanceof RecordValidationError) {
         throw new TRPCError({ code: "BAD_REQUEST", message: e.message });
       }
+      log.errorFromUnknown(e, { operation: "records.list", collectionId: input.collectionId });
       const message = e instanceof Error ? e.message : "Failed to list records.";
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
     }
@@ -74,6 +76,11 @@ export const recordsRouter = router({
         if (e instanceof TRPCError) {
           throw e;
         }
+        log.errorFromUnknown(e, {
+          operation: "records.byId",
+          collectionId: input.collectionId,
+          recordId: input.id,
+        });
         const message = e instanceof Error ? e.message : "Failed to load record.";
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
       }
@@ -135,6 +142,11 @@ export const recordsRouter = router({
         if (e instanceof TRPCError) {
           throw e;
         }
+        log.errorFromUnknown(e, {
+          operation: "records.delete",
+          collectionId: input.collectionId,
+          recordId: input.id,
+        });
         const message = e instanceof Error ? e.message : "Failed to delete record.";
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
       }

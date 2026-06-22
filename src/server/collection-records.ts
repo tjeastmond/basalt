@@ -11,6 +11,7 @@ import {
 } from "@/lib/collection-fields";
 import { escapeIlikePattern } from "@/lib/ilike-escape";
 import { assertSafeSqlIdentifier, collectionDataTableName } from "@/lib/collection-physical-table";
+import { log } from "@/lib/server/logging/logger";
 
 export class RecordValidationError extends Error {
   override readonly name = "RecordValidationError";
@@ -411,6 +412,11 @@ export async function insertCollectionRecord(
     if (!row) {
       throw new RecordValidationError("Insert returned no row.");
     }
+    log.info("record created", {
+      collectionId: target.collectionId,
+      recordId: row.id,
+      actorKind: actor.kind,
+    });
     return row;
   }
 
@@ -423,6 +429,11 @@ export async function insertCollectionRecord(
   if (!row) {
     throw new RecordValidationError("Insert returned no row.");
   }
+  log.info("record created", {
+    collectionId: target.collectionId,
+    recordId: row.id,
+    actorKind: actor.kind,
+  });
   return row;
 }
 
@@ -449,7 +460,15 @@ export async function updateCollectionRecord(
   setParts.push("updated_at = now()", `updated_by = $${updatedByIdx}`);
   const sql = `UPDATE ${target.tableSql} SET ${setParts.join(", ")} WHERE id = $${idIdx}::uuid RETURNING ${selectColumnList(target.fields)}`;
   const res = await pool.query<Record<string, unknown>>(sql, [...values, actorRef, recordId]);
-  return res.rows[0] ?? null;
+  const row = res.rows[0] ?? null;
+  if (row) {
+    log.info("record updated", {
+      collectionId: target.collectionId,
+      recordId,
+      actorKind: actor.kind,
+    });
+  }
+  return row;
 }
 
 export async function deleteCollectionRecord(target: CollectionRecordsTarget, recordId: string): Promise<boolean> {
@@ -459,5 +478,9 @@ export async function deleteCollectionRecord(target: CollectionRecordsTarget, re
   const pool = getPool();
   const sql = `DELETE FROM ${target.tableSql} WHERE id = $1::uuid`;
   const res = await pool.query(sql, [recordId]);
-  return res.rowCount !== null && res.rowCount > 0;
+  const deleted = res.rowCount !== null && res.rowCount > 0;
+  if (deleted) {
+    log.info("record deleted", { collectionId: target.collectionId, recordId });
+  }
+  return deleted;
 }

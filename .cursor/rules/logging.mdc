@@ -1,0 +1,32 @@
+---
+description: Local file logging conventions for server-side debugging
+alwaysApply: true
+---
+
+# Logging
+
+Basalt writes structured JSON logs under `data/logs/` (rotated by size). The active file is symlinked at `data/logs/current.log` — tail with `pnpm logs:tail` (runs `scripts/ensure-log-file.ts` first to create the log dir when enabled).
+
+## When debugging server issues
+
+1. Tail the log file first: `pnpm logs:tail` (`data/logs/current.log`)
+2. Look for `warn` and `error` entries before checking route responses
+3. Completed operations appear at `info`; internals at `debug`
+
+## Rules
+
+- Use `log.debug`, `log.info`, `log.warn`, and `log.error` from `@/lib/server/logging/logger`
+- Do not use `console.*` in server code, API routes, or CLI scripts
+- Do not log validation `400`s, expected `403`s, or `404`s
+- Do not log secrets, bearer tokens, or full URLs with credentials — use `hostFromUrl()` from `@/lib/server/logging/sanitize`
+- Log state changes at **info**, handled problems at **warn**, failures at **error**
+- Set `LOG_ENABLED=false` on Vercel until remote log shipping exists
+
+## Levels
+
+| Level | Use for |
+| ----- | ------- |
+| debug | Internal steps (DDL detail, query planning) |
+| info | Completed operations (CRUD, seed, migrations) |
+| warn | Handled problems (auth rejected, rate limit hit) |
+| error | Failures and uncaught exceptions |
